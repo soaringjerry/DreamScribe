@@ -1,0 +1,8 @@
+server:
+  host: "localhost"
+  port: "8080"
+pcas:
+  address: "localhost:50051"
+  eventType: "capability.streaming.transcribe.v1"
+user:
+  id: "default-user"

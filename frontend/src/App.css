@@ -1,0 +1,564 @@
+/* Import fonts for clean typography */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+/* Root variables - Japanese aesthetic color palette */
+:root {
+  /* Natural colors inspired by Japanese design */
+  --shiro: #fafaf9;           /* Off-white - main background */
+  --kinari: #f5f2e8;          /* Natural linen - secondary background */
+  --gin: #e8e5e0;             /* Silver - borders */
+  --hai: #9ca3af;             /* Ash gray - muted text */
+  --sumi: #1f2937;            /* Charcoal - primary text */
+  --kuro: #111827;            /* Black - headings */
+  
+  /* Accent colors */
+  --sakura: #fbbf24;          /* Warm amber - primary accent */
+  --take: #86efac;            /* Bamboo green - success */
+  --ume: #fca5a5;             /* Plum red - danger */
+  --fuji: #c7d2fe;            /* Wisteria - info */
+  
+  /* Shadows - very subtle */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 2px 4px 0 rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 4px 8px 0 rgba(0, 0, 0, 0.06);
+  
+  /* Spacing */
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  
+  /* Typography */
+  --font-sans: 'Noto Sans', 'Noto Sans JP', -apple-system, sans-serif;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+}
+
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--shiro);
+  color: var(--sumi);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main app container */
+.App {
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Heading with Japanese minimalism */
+.App h1 {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 700;
+  color: var(--kuro);
+  margin-bottom: var(--space-lg);
+  text-align: center;
+  letter-spacing: -0.02em;
+  font-family: 'Noto Sans JP', var(--font-sans);
+}
+
+/* Status bar - minimal and elegant */
+.status-bar {
+  background: var(--kinari);
+  border: 1px solid var(--gin);
+  border-radius: 8px;
+  padding: var(--space-sm) var(--space-md);
+  margin: 0 auto var(--space-lg);
+  max-width: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 56px;
+  transition: all 0.3s ease;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.status-text {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--sumi);
+}
+
+/* Japanese-style buttons - minimal with subtle interaction */
+.btn {
+  padding: 0.625rem 1.5rem;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  background: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary {
+  background: var(--sakura);
+  color: var(--kuro);
+  border-color: var(--sakura);
+}
+
+.btn-primary:hover {
+  background: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.btn-primary:disabled {
+  background: var(--gin);
+  border-color: var(--gin);
+  color: var(--hai);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--sumi);
+  border-color: var(--gin);
+}
+
+.btn-secondary:hover {
+  background: var(--kinari);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-danger {
+  background: white;
+  color: var(--ume);
+  border-color: var(--ume);
+}
+
+.btn-danger:hover {
+  background: var(--ume);
+  color: white;
+}
+
+/* Toggle group */
+.toggle-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0 auto var(--space-lg);
+  max-width: 500px;
+}
+
+/* Toggle switch - Japanese minimalism */
+.toggle-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  background: var(--kinari);
+  border-radius: 8px;
+  border: 1px solid var(--gin);
+  gap: var(--space-xs);
+}
+
+.toggle-label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-base);
+  color: var(--sumi);
+  user-select: none;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background: var(--gin);
+  border-radius: 24px;
+  transition: all 0.3s ease;
+}
+
+.toggle-switch input {
+  display: none;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+}
+
+input:checked + .toggle-switch {
+  background: var(--take);
+}
+
+input:checked + .toggle-switch .toggle-slider {
+  transform: translateX(24px);
+}
+
+/* Controls section - responsive flex layout */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+/* Alert messages - subtle and elegant */
+.alert {
+  padding: var(--space-sm) var(--space-md);
+  margin: 0 auto var(--space-lg);
+  max-width: 800px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+  border: 1px solid;
+}
+
+.alert-error {
+  background: #fef2f2;
+  border-color: var(--ume);
+  color: #dc2626;
+}
+
+.alert-warning {
+  background: #fffbeb;
+  border-color: var(--sakura);
+  color: #d97706;
+}
+
+/* Transcript container - clean and spacious */
+.transcript-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid var(--gin);
+  border-radius: 12px;
+  padding: var(--space-lg);
+  margin-top: var(--space-md);
+  min-height: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.transcript-container h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+  color: var(--kuro);
+  text-align: center;
+}
+
+/* Two column layout - responsive grid */
+.two-column-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .two-column-container {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  .two-column-container {
+    gap: var(--space-xl);
+  }
+}
+
+/* Column container - minimalist design */
+.column-container {
+  background: var(--kinari);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gin);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.column-container h3 {
+  padding: var(--space-sm) var(--space-md);
+  background: white;
+  border-bottom: 1px solid var(--gin);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--kuro);
+}
+
+/* Scrollable area - clean scrollbar */
+.scrollable-column {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md);
+  min-height: 300px;
+  max-height: 60vh;
+}
+
+/* Custom scrollbar - subtle */
+.scrollable-column::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable-column::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollable-column::-webkit-scrollbar-thumb {
+  background: var(--gin);
+  border-radius: 3px;
+}
+
+.scrollable-column::-webkit-scrollbar-thumb:hover {
+  background: var(--hai);
+}
+
+/* Content list */
+.content-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* Transcript items - clean cards */
+.transcript-item {
+  padding: var(--space-sm);
+  background: white;
+  border-radius: 6px;
+  border-left: 3px solid var(--sakura);
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.transcript-item:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateX(2px);
+}
+
+.column-container:nth-child(2) .transcript-item {
+  border-left-color: var(--take);
+}
+
+/* Speaker name - subtle emphasis */
+.speaker-name {
+  font-weight: 600;
+  color: var(--kuro);
+  margin-right: var(--space-xs);
+  font-size: var(--font-size-sm);
+}
+
+/* Text content */
+.text-content {
+  color: var(--sumi);
+  line-height: 1.7;
+  font-size: var(--font-size-base);
+}
+
+.text-content.partial {
+  color: var(--hai);
+  font-style: italic;
+}
+
+/* Cursor - minimal */
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--sakura);
+  margin-left: 2px;
+  animation: blink 1s infinite;
+  transition: background-color 0.2s ease;
+}
+
+/* Deleting cursor - different color */
+.cursor.deleting {
+  background: var(--ume);
+  animation: blink 0.5s infinite; /* Faster blink when deleting */
+}
+
+/* Warning text */
+.warning-text {
+  font-size: var(--font-size-sm);
+  color: var(--sakura);
+  text-align: center;
+  margin-top: var(--space-xs);
+}
+
+/* Timer display - clean and modern */
+.timer-display {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--kuro);
+  color: white;
+  border-radius: 6px;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Animations - subtle and smooth */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  .App {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  
+  .App h1 {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--space-md);
+  }
+  
+  .controls {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .btn {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .transcript-container {
+    padding: var(--space-sm);
+  }
+  
+  .scrollable-column {
+    padding: var(--space-sm);
+    min-height: 200px;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .App {
+    padding: var(--space-md);
+  }
+  
+  .two-column-container {
+    gap: var(--space-md);
+  }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1280px) {
+  .App {
+    padding: var(--space-md) calc(var(--space-xl) * 2);
+  }
+  
+  .scrollable-column {
+    max-height: 70vh;
+  }
+  
+  .transcript-container {
+    padding: var(--space-xl);
+  }
+}
+
+/* Extra large screens */
+@media (min-width: 1920px) {
+  .App {
+    padding: var(--space-md) calc(var(--space-xl) * 3);
+  }
+}
+
+/* Print styles */
+@media print {
+  .controls,
+  .toggle-container,
+  .status-bar {
+    display: none;
+  }
+  
+  .transcript-container {
+    border: none;
+    box-shadow: none;
+  }
+}
