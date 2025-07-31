@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# CI/CD
+.github/
+
+# Frontend development files
+frontend/node_modules/
+frontend/dist/
+frontend/*.log
+
+# Backend build artifacts
+backend/dreamscribe
+backend/main
+backend/*.test
+backend/*.out
+
+# Test files
+*_test.go
+test_*.py
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Environment files
+.env*
+
+# Scripts (not needed in Docker)
+start-*.sh
+check-*.sh
