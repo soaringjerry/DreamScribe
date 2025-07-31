@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   PCMAudioRecorderProvider,
   usePCMAudioRecorderContext,
@@ -79,7 +79,7 @@ function TranscriptionApp() {
   );
   
   const { startRecording, stopRecording } = usePCMAudioRecorderContext();
-  const { connect, sendBinary, disconnect, status: wsStatus, onMessage } = useBackendWebSocket();
+  const { connect, sendBinary, disconnect, status: wsStatus, onMessage, waitForConnection } = useBackendWebSocket();
   
   // Current line tracking for accumulating text
   const currentLineRef = useRef<string>('');
@@ -268,15 +268,8 @@ function TranscriptionApp() {
       // Ensure WebSocket is connected
       if (wsStatus !== 'open') {
         connect();
-        // Wait for connection
-        let attempts = 0;
-        while (wsStatus !== 'open' && attempts < 50) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          attempts++;
-        }
-        if (wsStatus !== 'open') {
-          throw new Error('Failed to connect to backend');
-        }
+        // Wait for connection using the new waitForConnection method
+        await waitForConnection();
       }
       
       // Start recording audio
@@ -464,8 +457,8 @@ function TranscriptionApp() {
       if (result.status === 'done' && result.transcript?.results) {
         // 2. 过滤结果：只保留在断点之后的新片段
         const newSegments = result.transcript.results
-          .filter((item: any) => item.start_time > lastTimestamp)
-          .map((item: any) => ({
+          .filter((item: { start_time: number }) => item.start_time > lastTimestamp)
+          .map((item: { start_time: number; end_time: number; alternatives: Array<{ content?: string; speaker?: string }> }) => ({
             text: item.alternatives[0]?.content || '',
             startTime: item.start_time,
             endTime: item.end_time,
@@ -485,7 +478,7 @@ function TranscriptionApp() {
         setLines(prevLines => {
           const newLines = [...prevLines];
           
-          newSegments.forEach((segment: any) => {
+          newSegments.forEach((segment: { text: string; startTime: number; endTime: number; speaker: string }) => {
             if (!segment.text.trim()) return;
 
             let lastSpeakerLineIndex = -1;

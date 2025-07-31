@@ -11,6 +11,7 @@ interface UseBackendWebSocketReturn {
   disconnect: () => void;
   status: WebSocketStatus;
   onMessage: (handler: (data: string) => void) => void;
+  waitForConnection: () => Promise<void>;
 }
 
 const BACKEND_WS_URL = import.meta.env.VITE_BACKEND_WS_URL || 'ws://localhost:8080';
@@ -159,6 +160,28 @@ export const useBackendWebSocket = (): UseBackendWebSocketReturn => {
     }
   }, []);
 
+  const waitForConnection = useCallback(() => {
+    return new Promise<void>((resolve, reject) => {
+      if (statusRef.current === 'open') {
+        resolve();
+        return;
+      }
+
+      let attempts = 0;
+      const maxAttempts = 50;
+      const checkInterval = setInterval(() => {
+        attempts++;
+        if (statusRef.current === 'open') {
+          clearInterval(checkInterval);
+          resolve();
+        } else if (attempts >= maxAttempts || statusRef.current === 'error') {
+          clearInterval(checkInterval);
+          reject(new Error('Failed to connect to backend'));
+        }
+      }, 100);
+    });
+  }, []);
+
   useEffect(() => {
     return () => {
       disconnect();
@@ -172,5 +195,6 @@ export const useBackendWebSocket = (): UseBackendWebSocketReturn => {
     disconnect,
     status,
     onMessage,
+    waitForConnection,
   };
 };
