@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	busv1 "github.com/pcas/dreams-cli/backend/gen/pcas/bus/v1"
-	eventsv1 "github.com/soaringjerry/pcas/gen/go/pcas/events/v1"
+	eventsv1 "github.com/pcas/dreams-cli/backend/gen/pcas/events/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

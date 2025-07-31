@@ -754,7 +754,7 @@ const file_pcas_bus_v1_bus_proto_rawDesc = "" +
 	"\aPublish\x12\x15.pcas.events.v1.Event\x1a\x1c.pcas.bus.v1.PublishResponse\x12C\n" +
 	"\tSubscribe\x12\x1d.pcas.bus.v1.SubscribeRequest\x1a\x15.pcas.events.v1.Event0\x01\x12A\n" +
 	"\x06Search\x12\x1a.pcas.bus.v1.SearchRequest\x1a\x1b.pcas.bus.v1.SearchResponse\x12Q\n" +
-	"\x0eInteractStream\x12\x1c.pcas.bus.v1.InteractRequest\x1a\x1d.pcas.bus.v1.InteractResponse(\x010\x01B7Z5github.com/soaringjerry/pcas/gen/go/pcas/bus/v1;busv1b\x06proto3"
+	"\x0eInteractStream\x12\x1c.pcas.bus.v1.InteractRequest\x1a\x1d.pcas.bus.v1.InteractResponse(\x010\x01B:Z8github.com/pcas/dreams-cli/backend/gen/pcas/bus/v1;busv1b\x06proto3"
 
 var (
 	file_pcas_bus_v1_bus_proto_rawDescOnce sync.Once

@@ -43,7 +43,9 @@ func (h *Handler) HandleTranscription(c *gin.Context) {
 	gateway, err := pcas.NewGateway(h.config.PCAS.Address)
 	if err != nil {
 		log.Printf("Failed to create PCAS gateway: %v", err)
-		conn.WriteMessage(websocket.TextMessage, []byte("Failed to connect to transcription service"))
+		if err := conn.WriteMessage(websocket.TextMessage, []byte("Failed to connect to transcription service")); err != nil {
+			log.Printf("Failed to write error message to client: %v", err)
+		}
 		return
 	}
 	defer gateway.Close()

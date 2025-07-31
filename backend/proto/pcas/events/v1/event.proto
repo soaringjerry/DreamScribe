@@ -9,7 +9,7 @@ import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
 // 为Go语言代码生成指定包路径和别名。
-option go_package = "github.com/soaringjerry/pcas/gen/go/pcas/events/v1;eventsv1";
+option go_package = "github.com/pcas/dreams-cli/backend/gen/pcas/events/v1;eventsv1";
 
 // PCAS 的核心事件信封 —— 与 CloudEvents v1.0 兼容。
 // 这是流经整个PCAS事件总线的所有事件的统一结构。

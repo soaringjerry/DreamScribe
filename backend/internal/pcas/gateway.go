@@ -22,7 +22,7 @@ type Gateway struct {
 }
 
 func NewGateway(address string) (*Gateway, error) {
-	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to PCAS: %w", err)
 	}
