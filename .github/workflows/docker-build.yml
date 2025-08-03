@@ -76,8 +76,8 @@ jobs:
           echo "### Run the container:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
           echo "docker run -d \\" >> $GITHUB_STEP_SUMMARY
-          echo "  --name dreamtrans \\" >> $GITHUB_STEP_SUMMARY
+          echo "  --name dreamscribe \\" >> $GITHUB_STEP_SUMMARY
           echo "  -p 8080:8080 \\" >> $GITHUB_STEP_SUMMARY
-          echo "  -e SM_API_KEY=your_speechmatics_api_key \\" >> $GITHUB_STEP_SUMMARY
+          echo "  -v \$(pwd)/configs/config.production.yaml:/app/config.yaml \\" >> $GITHUB_STEP_SUMMARY
           echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
