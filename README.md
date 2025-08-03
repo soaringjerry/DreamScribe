@@ -21,7 +21,7 @@ DreamScribe is a modern web application that combines real-time speech-to-text c
 - **Web Framework**: Gin
 - **WebSocket**: Gorilla WebSocket
 - **RPC**: gRPC
-- **Speech Recognition**: Speechmatics API
+- **Speech Recognition**: Via PCAS streaming capabilities
 
 ### Frontend
 - **Framework**: React
@@ -205,8 +205,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Built with the PCAS ecosystem in mind
-- Powered by Speechmatics for speech recognition
+- Built as an integral part of the PCAS ecosystem
+- Speech recognition capabilities provided through PCAS services
 - Inspired by the need for seamless voice-to-knowledge capture
 
 ## Support
