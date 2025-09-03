@@ -9,9 +9,9 @@ Real-time speech transcription and translation frontend using React + TypeScript
 npm install
 ```
 
-2. Copy `.env.example` to `.env` and configure as needed:
+2. Optional: create `.env` to override backend WS base (usually not needed):
 ```bash
-cp .env.example .env
+echo "VITE_BACKEND_WS_URL=ws://localhost:8080" > .env
 ```
 
 3. Start the development server:
@@ -19,28 +19,19 @@ cp .env.example .env
 npm run dev
 ```
 
-## Environment Variables
+## Connection Behavior
 
-### Speechmatics Configuration
-
-- `VITE_SPEECHMATICS_OPERATING_POINT` - Model quality setting
-  - Values: `standard` or `enhanced` 
-  - Default: `enhanced`
-  - The enhanced model provides better accuracy at slightly higher latency
-
-- `VITE_SPEECHMATICS_MAX_DELAY` - Delay before returning final transcripts
-  - Range: `0.7` to `4` seconds
-  - Default: Speechmatics default (4 seconds)
-  - Lower values return results faster but may be less accurate
-  - Example: `VITE_SPEECHMATICS_MAX_DELAY=2.0`
+- Default: connects to backend using same-origin WebSocket URL `ws(s)://<page-host>/ws/transcribe`.
+- Development: Vite dev server proxies `/ws` to `http://localhost:8080` with WebSocket upgrade.
+- Overrides (only if needed):
+  - URL query: `?ws=ws://your-host:port`
+  - Build-time env: `VITE_BACKEND_WS_URL=ws://your-host:port`
 
 ## Features
 
-- Real-time speech-to-text transcription
-- Speaker diarization
-- Enhanced model for better accuracy
-- Configurable latency settings
-- Clean conversation-style display
+- Real-time speech-to-text transcription (via backend WS)
+- Three-pane UI: Transcript, Translation (placeholder), Summary + Chat (placeholder)
+- Robust reconnect and session persistence (IndexedDB)
 
 ## Development
 

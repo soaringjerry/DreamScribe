@@ -11,10 +11,11 @@ import (
 )
 
 func main() {
-	configPath := os.Getenv("CONFIG_PATH")
-	if configPath == "" {
-		configPath = "../../configs/config.example.yaml"
-	}
+    configPath := os.Getenv("CONFIG_PATH")
+    if configPath == "" {
+        // When running via start-backend.sh (cwd=backend), the example config is at ../configs/
+        configPath = "../configs/config.example.yaml"
+    }
 
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
@@ -38,6 +39,8 @@ func main() {
 		router.Static("/assets", staticPath+"/assets")
 		// Serve other static files
 		router.StaticFile("/vite.svg", staticPath+"/vite.svg")
+		// Audio worklet script required by frontend recorder
+		router.StaticFile("/pcm-audio-worklet.min.js", staticPath+"/pcm-audio-worklet.min.js")
 		
 		// Catch-all route for SPA (Single Page Application)
 		// This should be registered after API routes to avoid conflicts

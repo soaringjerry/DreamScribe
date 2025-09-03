@@ -14,8 +14,21 @@ interface UseBackendWebSocketReturn {
   waitForConnection: () => Promise<void>;
 }
 
-const BACKEND_WS_URL = import.meta.env.VITE_BACKEND_WS_URL || 'ws://localhost:8080';
-const isProduction = BACKEND_WS_URL === '/';
+// Resolve backend WS base:
+// Priority:
+// 1) URL query param `?ws=ws(s)://host:port` (for quick override in demos)
+// 2) VITE_BACKEND_WS_URL (compile-time)
+// 3) Same-origin (production, or dev via Vite proxy)
+const getExplicitBase = (): string | undefined => {
+  try {
+    const url = new URL(window.location.href);
+    const wsParam = url.searchParams.get('ws');
+    if (wsParam && /^wss?:\/\//i.test(wsParam)) return wsParam.trim();
+  } catch {}
+  const env = (import.meta.env.VITE_BACKEND_WS_URL as string | undefined)?.trim();
+  return env || undefined;
+};
+const EXPLICIT_WS_BASE = getExplicitBase();
 
 export const useBackendWebSocket = (): UseBackendWebSocketReturn => {
   const wsRef = useRef<WebSocket | null>(null);
@@ -70,10 +83,17 @@ export const useBackendWebSocket = (): UseBackendWebSocketReturn => {
     }
 
     try {
-      // In production, use relative WebSocket URL
-      const wsUrl = isProduction 
-        ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/transcribe`
-        : `${BACKEND_WS_URL}/ws/transcribe`;
+      // Build final WS URL
+      const wsUrl = (() => {
+        if (EXPLICIT_WS_BASE) {
+          const base = EXPLICIT_WS_BASE.replace(/\/$/, '');
+          return `${base}/ws/transcribe`;
+        }
+        // Use same-origin by default. In dev, vite proxy should forward /ws to backend 8080 with ws upgrade.
+        const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${scheme}//${window.location.host}/ws/transcribe`;
+      })();
+      console.log('[WS] connecting to', wsUrl);
       
       const ws = new WebSocket(wsUrl);
       
