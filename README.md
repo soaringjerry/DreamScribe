@@ -90,12 +90,12 @@ Use a single command on your server to install or update DreamScribe. GitHub Act
 
 Linux/macOS one-liner:
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/soaringjerry/DreamScribe/main/DreamScribe/scripts/install-or-update.sh)" -- --dir /opt/dreamscribe --pcas localhost:50051
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/soaringjerry/DreamScribe/main/scripts/install-or-update.sh)" -- --dir /opt/dreamscribe --pcas localhost:50051
 ```
 
 Windows PowerShell (two steps for clarity):
 ```powershell
-iwr -UseBasicParsing https://raw.githubusercontent.com/soaringjerry/DreamScribe/main/DreamScribe/scripts/install-or-update.ps1 -OutFile install-or-update.ps1
+iwr -UseBasicParsing https://raw.githubusercontent.com/soaringjerry/DreamScribe/main/scripts/install-or-update.ps1 -OutFile install-or-update.ps1
 ./install-or-update.ps1 -Dir "$HOME/dreamscribe" -PCASAddress "localhost:50051"
 ```
 
