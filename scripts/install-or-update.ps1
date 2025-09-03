@@ -1,6 +1,7 @@
 param(
   [string]$Dir = "$HOME/dreamscribe",
   [switch]$Dev,
+  [int]$Port = 8080,
   [string]$PCASAddress = "",
   [string]$EventType = ""
 )
@@ -32,6 +33,10 @@ if (-not (Test-Path $Config)) {
 }
 
 if ($PCASAddress) {
+  if ($PCASAddress -notmatch ':') {
+    Write-Warning 'PCAS address missing port. Defaulting to :50051'
+    $PCASAddress = "$PCASAddress:50051"
+  }
   Write-Host "Setting pcas.address=$PCASAddress" -ForegroundColor Green
   (Get-Content $Config) -replace 'address:\s*".*"', "address: \"$PCASAddress\"" | Set-Content $Config -Encoding UTF8
 }
@@ -41,6 +46,8 @@ if ($EventType) {
 }
 
 Push-Location $Dir
+# Write .env for compose variable substitution
+Set-Content -Path (Join-Path $Dir '.env') -Value "HTTP_PORT=$Port" -Encoding UTF8
 if ($Dev -and (Test-Path (Join-Path $Dir 'docker-compose.dev.yml'))) {
   docker compose -f docker-compose.yml -f docker-compose.dev.yml pull
   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d

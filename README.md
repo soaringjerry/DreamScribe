@@ -90,18 +90,19 @@ Use a single command on your server to install or update DreamScribe. GitHub Act
 
 Linux/macOS one-liner:
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/soaringjerry/DreamScribe/main/scripts/install-or-update.sh)" -- --dir /opt/dreamscribe --pcas localhost:50051
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/soaringjerry/DreamScribe/main/scripts/install-or-update.sh)" -- --dir /opt/dreamscribe --pcas localhost:50051 --port 18080
 ```
 
 Windows PowerShell (two steps for clarity):
 ```powershell
 iwr -UseBasicParsing https://raw.githubusercontent.com/soaringjerry/DreamScribe/main/scripts/install-or-update.ps1 -OutFile install-or-update.ps1
-./install-or-update.ps1 -Dir "$HOME/dreamscribe" -PCASAddress "localhost:50051"
+./install-or-update.ps1 -Dir "$HOME/dreamscribe" -PCASAddress "localhost:50051" -Port 18080
 ```
 
 Options:
 - `--dev` or `-Dev`: enable auto-update via Watchtower overlay
 - `--dir` or `-Dir`: install directory (default Linux: `/opt/dreamscribe`, Windows: `$HOME/dreamscribe`)
+- `--port` or `-Port`: host port to expose (default 8080)
 - `--pcas` / `-PCASAddress`: override `pcas.address`
 - `--event-type` / `-EventType`: override `pcas.eventType`
 

@@ -11,16 +11,18 @@ REPO_RAW_BASE="https://raw.githubusercontent.com/soaringjerry/DreamScribe/main"
 
 INSTALL_DIR="${INSTALL_DIR:-/opt/dreamscribe}"
 DEV="false"
+HTTP_PORT="${HTTP_PORT:-8080}"
 PCAS_ADDRESS="${PCAS_ADDRESS:-}"
 EVENT_TYPE="${EVENT_TYPE:-}"
 
 usage() {
   cat <<EOF
-Usage: install-or-update.sh [--dir PATH] [--dev] [--pcas HOST:PORT] [--event-type TYPE]
+Usage: install-or-update.sh [--dir PATH] [--dev] [--port N] [--pcas HOST:PORT] [--event-type TYPE]
 
 Options:
   --dir PATH         Install directory (default: /opt/dreamscribe)
   --dev              Enable auto-update via Watchtower overlay
+  --port N           Host port to expose (default: 8080)
   --pcas HOST:PORT   Set pcas.address in config
   --event-type TYPE  Set pcas.eventType in config
 
@@ -29,7 +31,7 @@ Environment overrides:
 
 Examples:
   sudo bash -c "$(curl -fsSL $REPO_RAW_BASE/scripts/install-or-update.sh)" -- --dir /opt/dreamscribe --pcas localhost:50051
-  PCAS_ADDRESS=10.0.0.5:9090 bash install-or-update.sh --dev
+  PCAS_ADDRESS=10.0.0.5:9090 HTTP_PORT=18080 bash install-or-update.sh --dev
 EOF
 }
 
@@ -39,6 +41,8 @@ while [[ $# -gt 0 ]]; do
       INSTALL_DIR="$2"; shift 2;;
     --dev)
       DEV="true"; shift;;
+    --port)
+      HTTP_PORT="$2"; shift 2;;
     --pcas)
       PCAS_ADDRESS="$2"; shift 2;;
     --event-type)
@@ -76,6 +80,10 @@ patch_yaml_value() {
 }
 
 if [[ -n "$PCAS_ADDRESS" ]]; then
+  if [[ "$PCAS_ADDRESS" != *:* ]]; then
+    echo "Warning: --pcas provided without port. Defaulting to :50051" >&2
+    PCAS_ADDRESS="$PCAS_ADDRESS:50051"
+  fi
   echo "Setting pcas.address=$PCAS_ADDRESS"
   patch_yaml_value "pcas.address" "$PCAS_ADDRESS" "$CONFIG_PROD"
 fi
@@ -87,6 +95,8 @@ fi
 
 echo "Pulling latest image and starting containers..."
 pushd "$INSTALL_DIR" >/dev/null
+# Write .env for compose variable substitution
+echo "HTTP_PORT=$HTTP_PORT" > .env
 if [[ "$DEV" == "true" && -f "docker-compose.dev.yml" ]]; then
   docker compose -f docker-compose.yml -f docker-compose.dev.yml pull
   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d

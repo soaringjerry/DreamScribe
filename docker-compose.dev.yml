@@ -1,18 +1,6 @@
 version: "3.8"
 
 services:
-  dreamscribe:
-    image: ghcr.io/soaringjerry/dreamscribe:latest
-    container_name: dreamscribe
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      - CONFIG_PATH=/app/config.yaml
-      - STATIC_PATH=/app/static
-    volumes:
-      - ./configs/config.production.yaml:/app/config.yaml:ro
-
   # Optional: Auto-update dreamscribe to the latest image from GHCR in dev mode
   watchtower:
     image: containrrr/watchtower:latest
@@ -22,4 +10,3 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     # Poll every 5 minutes and clean up old images, only update the 'dreamscribe' container
     command: --interval 300 --cleanup dreamscribe
-
