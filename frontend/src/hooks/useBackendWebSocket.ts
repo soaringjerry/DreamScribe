@@ -20,11 +20,14 @@ interface UseBackendWebSocketReturn {
 // 2) VITE_BACKEND_WS_URL (compile-time)
 // 3) Same-origin (production, or dev via Vite proxy)
 const getExplicitBase = (): string | undefined => {
+  let wsParam: string | null = null;
   try {
     const url = new URL(window.location.href);
-    const wsParam = url.searchParams.get('ws');
-    if (wsParam && /^wss?:\/\//i.test(wsParam)) return wsParam.trim();
-  } catch {}
+    wsParam = url.searchParams.get('ws');
+  } catch (e) {
+    // ignore invalid URL parsing in unusual environments
+  }
+  if (wsParam && /^wss?:\/\//i.test(wsParam)) return wsParam.trim();
   const env = (import.meta.env.VITE_BACKEND_WS_URL as string | undefined)?.trim();
   return env || undefined;
 };
