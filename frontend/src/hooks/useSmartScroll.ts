@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import type { RefObject } from 'react';
 
 /**
  * Custom hook for implementing smart auto-scroll behavior.
@@ -9,7 +10,7 @@ import { useRef, useEffect } from 'react';
  * @param dependencies - Array of dependencies that trigger scroll when changed
  */
 export function useSmartScroll<T>(
-  ref: React.RefObject<HTMLElement | null>,
+  ref: RefObject<HTMLElement | null>,
   dependencies: T[]
 ) {
   // Track whether the user is locked to bottom (i.e., auto-scroll is active)

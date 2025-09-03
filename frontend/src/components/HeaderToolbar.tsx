@@ -1,5 +1,3 @@
-import React from 'react';
-
 type Props = {
   isTranscribing: boolean;
   isInitializing: boolean;
@@ -14,7 +12,7 @@ type Props = {
 const pad = (n: number) => n.toString().padStart(2, '0');
 const formatMMSS = (s: number) => `${pad(Math.floor(s / 60))}:${pad(Math.floor(s % 60))}`;
 
-export const HeaderToolbar: React.FC<Props> = ({
+export function HeaderToolbar({
   isTranscribing,
   isInitializing,
   elapsedTime,
@@ -23,7 +21,7 @@ export const HeaderToolbar: React.FC<Props> = ({
   onStop,
   typewriterEnabled,
   onToggleTypewriter,
-}) => {
+}: Props) {
   const statusColor = wsStatus === 'open' ? '#22c55e' : wsStatus === 'connecting' ? '#f59e0b' : '#ef4444';
 
   return (
@@ -56,5 +54,4 @@ export const HeaderToolbar: React.FC<Props> = ({
       </div>
     </header>
   );
-};
-
+}

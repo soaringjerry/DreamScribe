@@ -1,4 +1,3 @@
-import React from 'react';
 import { useDiffTypewriter } from '../hooks/useDiffTypewriter';
 
 interface DiffStreamingTextProps {
@@ -6,10 +5,7 @@ interface DiffStreamingTextProps {
   className?: string;
 }
 
-export const DiffStreamingText: React.FC<DiffStreamingTextProps> = ({ 
-  text, 
-  className = ''
-}) => {
+export function DiffStreamingText({ text, className = '' }: DiffStreamingTextProps) {
   const { displayedText, cursorPosition, isAnimating, isDeleting } = useDiffTypewriter(text);
   
   // 将光标插入到正确的位置
@@ -25,4 +21,4 @@ export const DiffStreamingText: React.FC<DiffStreamingTextProps> = ({
       {afterCursor}
     </span>
   );
-};
+}

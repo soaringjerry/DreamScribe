@@ -1,4 +1,4 @@
-import React, { RefObject } from 'react';
+import type { RefObject } from 'react';
 import { TranscriptItem } from '../components/TranscriptItem';
 
 export interface ConfirmedSegment { text: string; startTime: number; endTime: number; }
@@ -13,10 +13,10 @@ export interface TranscriptLine {
 type Props = {
   lines: TranscriptLine[];
   typewriterEnabled: boolean;
-  scrollRef: RefObject<HTMLDivElement>;
+  scrollRef: RefObject<HTMLDivElement | null>;
 };
 
-export const TranscriptPane: React.FC<Props> = ({ lines, typewriterEnabled, scrollRef }) => {
+export function TranscriptPane({ lines, typewriterEnabled, scrollRef }: Props) {
   return (
     <section className="pane pane--transcript">
       <div className="pane__title">原文 Transcript</div>
@@ -48,5 +48,4 @@ export const TranscriptPane: React.FC<Props> = ({ lines, typewriterEnabled, scro
       </div>
     </section>
   );
-};
-
+}

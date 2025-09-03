@@ -1,4 +1,3 @@
-import React from 'react';
 import type { TranscriptLine } from './TranscriptPane';
 
 type Props = {
@@ -6,7 +5,7 @@ type Props = {
   targetLang: string;
 };
 
-export const TranslationPane: React.FC<Props> = ({ lines, targetLang }) => {
+export function TranslationPane({ lines, targetLang }: Props) {
   return (
     <section className="pane pane--translation">
       <div className="pane__title">译文 Translation · {targetLang.toUpperCase()}</div>
@@ -29,5 +28,4 @@ export const TranslationPane: React.FC<Props> = ({ lines, targetLang }) => {
       </div>
     </section>
   );
-};
-
+}

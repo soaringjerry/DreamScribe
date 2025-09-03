@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   PCMAudioRecorderProvider,
   usePCMAudioRecorderContext,
@@ -309,7 +309,9 @@ function TranscriptionApp() {
 
 export default function App() {
   const [audioContext] = useState(() => {
-    const AC: any = (window as any).AudioContext || (window as any).webkitAudioContext;
+    type ACType = typeof AudioContext;
+    const w = window as unknown as { AudioContext?: ACType; webkitAudioContext?: ACType };
+    const AC: ACType | undefined = w.AudioContext ?? w.webkitAudioContext;
     if (!AC) throw new Error('AudioContext not supported');
     return new AC();
   });
@@ -320,4 +322,3 @@ export default function App() {
     </PCMAudioRecorderProvider>
   );
 }
-

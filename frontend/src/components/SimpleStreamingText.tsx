@@ -1,4 +1,3 @@
-import React from 'react';
 import { useSimpleTypewriter } from '../hooks/useSimpleTypewriter';
 
 interface SimpleStreamingTextProps {
@@ -6,10 +5,7 @@ interface SimpleStreamingTextProps {
   className?: string;
 }
 
-export const SimpleStreamingText: React.FC<SimpleStreamingTextProps> = ({ 
-  text, 
-  className = ''
-}) => {
+export function SimpleStreamingText({ text, className = '' }: SimpleStreamingTextProps) {
   const { displayedText, isTyping } = useSimpleTypewriter(text, 30);
   
   return (
@@ -18,4 +14,4 @@ export const SimpleStreamingText: React.FC<SimpleStreamingTextProps> = ({
       {isTyping && <span className="cursor">|</span>}
     </span>
   );
-};
+}

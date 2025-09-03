@@ -1,8 +1,8 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 type Msg = { id: string; role: 'user' | 'ai'; content: string };
 
-export const ChatPanel: React.FC = () => {
+export function ChatPanel() {
   const [messages, setMessages] = useState<Msg[]>([
     { id: 'ai-hello', role: 'ai', content: '你好，我是你的课堂助手。' },
   ]);
@@ -39,5 +39,4 @@ export const ChatPanel: React.FC = () => {
       </div>
     </div>
   );
-};
-
+}

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useInstantTypewriter } from '../hooks/useInstantTypewriter';
 
 interface InstantStreamingTextProps {
@@ -6,10 +5,7 @@ interface InstantStreamingTextProps {
   className?: string;
 }
 
-export const InstantStreamingText: React.FC<InstantStreamingTextProps> = ({ 
-  text, 
-  className = ''
-}) => {
+export function InstantStreamingText({ text, className = '' }: InstantStreamingTextProps) {
   const displayedText = useInstantTypewriter(text);
   const isTyping = displayedText.length < text.length;
   
@@ -19,4 +15,4 @@ export const InstantStreamingText: React.FC<InstantStreamingTextProps> = ({
       {isTyping && <span className="cursor">|</span>}
     </span>
   );
-};
+}

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useFastTypewriter } from '../hooks/useFastTypewriter';
 
 interface FastStreamingTextProps {
@@ -7,11 +6,7 @@ interface FastStreamingTextProps {
   speed?: number;
 }
 
-export const FastStreamingText: React.FC<FastStreamingTextProps> = ({ 
-  text, 
-  className = '',
-  speed = 30 // 30ms per update, showing 3 chars at a time = ~100 chars/second
-}) => {
+export function FastStreamingText({ text, className = '', speed = 30 }: FastStreamingTextProps) {
   const { displayedText, isTyping } = useFastTypewriter(text, speed);
   
   return (
@@ -20,4 +15,4 @@ export const FastStreamingText: React.FC<FastStreamingTextProps> = ({
       {isTyping && <span className="cursor">|</span>}
     </span>
   );
-};
+}

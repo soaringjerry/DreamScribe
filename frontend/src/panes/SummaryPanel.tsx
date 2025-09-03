@@ -1,5 +1,3 @@
-import React from 'react';
-
 type SummaryItem = { id: string; kind: 'key' | 'action' | 'term'; text: string };
 
 type Props = {
@@ -12,7 +10,7 @@ const SAMPLE: SummaryItem[] = [
   { id: 't1', kind: 'term', text: '术语：InteractStream（PCAS 双向流）。' },
 ];
 
-export const SummaryPanel: React.FC<Props> = ({ items = SAMPLE }) => {
+export function SummaryPanel({ items = SAMPLE }: Props) {
   return (
     <div className="summary-panel">
       <div className="summary-toolbar">
@@ -32,5 +30,4 @@ export const SummaryPanel: React.FC<Props> = ({ items = SAMPLE }) => {
       </div>
     </div>
   );
-};
-
+}
