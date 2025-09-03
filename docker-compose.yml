@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  dreamscribe:
+    image: ghcr.io/soaringjerry/dreamscribe:latest
+    container_name: dreamscribe
+    restart: unless-stopped
+    ports:
+      - "8080:8080" # Backend + static frontend
+    environment:
+      - CONFIG_PATH=/app/config.yaml
+      - STATIC_PATH=/app/static
+    volumes:
+      # Mount your production config into the container
+      - ./configs/config.production.yaml:/app/config.yaml:ro
+

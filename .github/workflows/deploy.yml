@@ -1,0 +1,82 @@
+name: Deploy to Server
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Image"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      dev_mode:
+        description: "Enable dev auto-update (watchtower)"
+        required: false
+        default: "false"
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare files to upload
+        run: |
+          mkdir -p upload/configs
+          cp docker-compose.yml upload/
+          cp docker-compose.dev.yml upload/ || true
+          # If a config is provided as a secret, create it; otherwise try repo default (optional)
+          if [ -n "${{ secrets.DEPLOY_CONFIG_YAML }}" ]; then
+            echo "Using DEPLOY_CONFIG_YAML secret for production config"
+            printf "%s" "${{ secrets.DEPLOY_CONFIG_YAML }}" > upload/configs/config.production.yaml
+          elif [ -f configs/config.production.yaml ]; then
+            echo "Using repo configs/config.production.yaml"
+            cp configs/config.production.yaml upload/configs/
+          else
+            echo "No production config provided. A config.production.yaml must exist on the server under ./configs/."
+          fi
+
+      - name: Copy files to remote host
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          source: "upload/*"
+          target: ${{ secrets.DEPLOY_PATH }}
+
+      - name: Deploy on remote host
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.DEPLOY_PATH }}
+            mkdir -p configs
+            # Move config into place if it was uploaded
+            if [ -f upload/configs/config.production.yaml ]; then
+              mv -f upload/configs/config.production.yaml configs/config.production.yaml
+            fi
+            mv -f upload/docker-compose.yml .
+            if [ -f upload/docker-compose.dev.yml ]; then mv -f upload/docker-compose.dev.yml .; fi
+
+            echo "Pulling latest image from GHCR..."
+            # Login to GHCR if credentials provided (optional for public images)
+            if [ -n "${{ secrets.GHCR_USERNAME }}" ] && [ -n "${{ secrets.GHCR_PAT }}" ]; then
+              echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+            fi
+
+            # Compose up (optionally with dev overlay)
+            if [ "${{ github.event.inputs.dev_mode }}" = "true" ] || [ "${{ secrets.DEPLOY_DEV_MODE }}" = "true" ]; then
+              docker compose -f docker-compose.yml -f docker-compose.dev.yml pull
+              docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+            else
+              docker compose -f docker-compose.yml pull
+              docker compose -f docker-compose.yml up -d
+            fi
+
+            echo "Deployment completed."
+

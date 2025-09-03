@@ -45,24 +45,71 @@ To dive deep into the core concepts, design philosophy, and grand vision of this
 ## Docker Deployment Guide
 
 ### Prerequisites
-- Docker
+- Docker (and Docker Compose plugin)
 - A running instance of PCAS
-- A production configuration file `configs/config.production.yaml`
 
-### Pull & Run from GHCR
+### Option A: Docker Compose (recommended)
+- Prepare config:
+  - `cp configs/config.example.yaml configs/config.production.yaml`
+  - Edit `configs/config.production.yaml` (`pcas.address` etc.)
+- Start:
+  - Linux/macOS: `./start-docker.sh`
+  - Windows PowerShell: `./start-docker.ps1`
+- Access: `http://localhost:8080`
+
+Dev auto-update (optional):
+- Start with watchtower overlay to auto-pull latest images from GHCR:
+  - Linux/macOS: `./start-docker.sh --dev`
+  - Windows PowerShell: `./start-docker.ps1 -Dev`
+
+Compose files:
+- `docker-compose.yml` – main service
+- `docker-compose.dev.yml` – adds Watchtower for auto-update in dev
+
+### Option B: Plain Docker run
 ```bash
 # 1. Pull the latest image
 docker pull ghcr.io/soaringjerry/dreamscribe:latest
 
 # 2. Prepare the production config file
-# cp configs/config.example.yaml configs/config.production.yaml
-# nano configs/config.production.yaml  <-- Modify pcas.address
+cp configs/config.example.yaml configs/config.production.yaml
+# edit configs/config.production.yaml  <-- set pcas.address
 
 # 3. Run the container
 docker run -d \
   --name dreamscribe \
   -p 8080:8080 \
-  -v $(pwd)/configs/config.production.yaml:/app/config.yaml \
+  -v $(pwd)/configs/config.production.yaml:/app/config.yaml:ro \
   ghcr.io/soaringjerry/dreamscribe:latest
 ```
-- **Access**: The application will be available at `http://localhost:8080`.
+- Access: `http://localhost:8080`
+
+## One-Command Deploy (Server-side)
+
+Use a single command on your server to install or update DreamScribe. GitHub Actions is only used to build and host Docker images on GHCR.
+
+Linux/macOS one-liner:
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/soaringjerry/DreamScribe/main/DreamScribe/scripts/install-or-update.sh)" -- --dir /opt/dreamscribe --pcas localhost:50051
+```
+
+Windows PowerShell (two steps for clarity):
+```powershell
+iwr -UseBasicParsing https://raw.githubusercontent.com/soaringjerry/DreamScribe/main/DreamScribe/scripts/install-or-update.ps1 -OutFile install-or-update.ps1
+./install-or-update.ps1 -Dir "$HOME/dreamscribe" -PCASAddress "localhost:50051"
+```
+
+Options:
+- `--dev` or `-Dev`: enable auto-update via Watchtower overlay
+- `--dir` or `-Dir`: install directory (default Linux: `/opt/dreamscribe`, Windows: `$HOME/dreamscribe`)
+- `--pcas` / `-PCASAddress`: override `pcas.address`
+- `--event-type` / `-EventType`: override `pcas.eventType`
+
+What the script does:
+- Downloads latest `docker-compose.yml` (+dev overlay) from GitHub
+- Ensures `configs/config.production.yaml` exists (created from example if missing)
+- Applies overrides if provided, then runs `docker compose pull && up -d`
+
+CI status:
+- Build & push to GHCR: `.github/workflows/docker-build.yml` (keep as-is)
+- No Action-based deployment required for one-command flow
