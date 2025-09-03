@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # Multi-stage Dockerfile for DreamScribe application
 
 # Stage 1: Build Go backend
@@ -11,31 +12,37 @@ WORKDIR /app/backend
 # Copy go mod files
 COPY backend/go.mod backend/go.sum ./
 
-# Download dependencies
-RUN go mod download
+# Download dependencies with cache mounts
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
 
 # Copy backend source code
 COPY backend/ .
 
-# Build the backend
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o dreamscribe ./cmd/server
+# Build the backend (use build cache; keep static by disabling cgo)
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -o dreamscribe ./cmd/server
 
 # Stage 2: Build React frontend
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
 # Copy package files
 COPY frontend/package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with cache
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit --no-fund
 
 # Copy frontend source code
 COPY frontend/ .
 
 # Build the frontend
-RUN npm run build
+RUN --mount=type=cache,target=/root/.npm \
+    npm run build
 
 # Stage 3: Final production image
 FROM alpine:latest
