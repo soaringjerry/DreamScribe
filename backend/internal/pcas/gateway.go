@@ -14,11 +14,11 @@ import (
 )
 
 type Gateway struct {
-	address   string
-	conn      *grpc.ClientConn
-	client    busv1.EventBusServiceClient
-	publisher *Publisher
-	distiller *distiller.Distiller
+    address   string
+    conn      *grpc.ClientConn
+    client    busv1.EventBusServiceClient
+    publisher *Publisher
+    distiller *distiller.Distiller
 }
 
 func NewGateway(address string) (*Gateway, error) {
@@ -160,4 +160,86 @@ func (g *Gateway) ProcessStream(ctx context.Context, eventType string, audioFrom
 	default:
 		return nil
 	}
+}
+
+// StartGenericStream launches a generic interact stream with PCAS and bridges bytes
+// from 'in' to PCAS and from PCAS to 'out'. It does not perform distillation or publishing.
+func (g *Gateway) StartGenericStream(ctx context.Context, eventType string, attributes map[string]string, in <-chan []byte, out chan<- []byte) error {
+    stream, err := g.client.InteractStream(ctx)
+    if err != nil {
+        return fmt.Errorf("failed to create interact stream: %w", err)
+    }
+
+    cfg := &busv1.InteractRequest{
+        RequestType: &busv1.InteractRequest_Config{
+            Config: &busv1.StreamConfig{
+                EventType: eventType,
+                Attributes: attributes,
+            },
+        },
+    }
+    if err := stream.Send(cfg); err != nil {
+        return fmt.Errorf("failed to send config: %w", err)
+    }
+
+    if _, err := stream.Recv(); err != nil {
+        return fmt.Errorf("failed to receive ready response: %w", err)
+    }
+
+    var wg sync.WaitGroup
+    errCh := make(chan error, 2)
+
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        for {
+            select {
+            case b, ok := <-in:
+                if !ok {
+                    // client end
+                    _ = stream.Send(&busv1.InteractRequest{RequestType: &busv1.InteractRequest_ClientEnd{ClientEnd: &busv1.StreamEnd{}}})
+                    return
+                }
+                if err := stream.Send(&busv1.InteractRequest{RequestType: &busv1.InteractRequest_Data{Data: &busv1.StreamData{Content: b}}}); err != nil {
+                    errCh <- fmt.Errorf("failed to send data: %w", err)
+                    return
+                }
+            case <-ctx.Done():
+                return
+            }
+        }
+    }()
+
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        defer close(out)
+        for {
+            resp, err := stream.Recv()
+            if err == io.EOF {
+                return
+            }
+            if err != nil {
+                errCh <- fmt.Errorf("failed to receive: %w", err)
+                return
+            }
+            switch r := resp.ResponseType.(type) {
+            case *busv1.InteractResponse_Data:
+                out <- r.Data.Content
+            case *busv1.InteractResponse_Error:
+                errCh <- fmt.Errorf("PCAS error: %s", r.Error.Message)
+                return
+            case *busv1.InteractResponse_ServerEnd:
+                return
+            }
+        }
+    }()
+
+    wg.Wait()
+    select {
+    case e := <-errCh:
+        return e
+    default:
+        return nil
+    }
 }

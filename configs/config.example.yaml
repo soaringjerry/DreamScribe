@@ -4,5 +4,8 @@ server:
 pcas:
   address: "localhost:50051"
   eventType: "capability.streaming.transcribe.v1"
+  translateEventType: "capability.streaming.translate.v1"
+  summarizeEventType: "capability.streaming.summarize.v1"
+  chatEventType: "capability.streaming.chat.v1"
 user:
   id: "default-user"

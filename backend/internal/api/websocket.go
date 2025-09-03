@@ -23,8 +23,10 @@ type Handler struct {
 }
 
 func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
-	h := &Handler{config: cfg}
-	router.GET("/ws/transcribe", h.HandleTranscription)
+    h := &Handler{config: cfg}
+    router.GET("/ws/transcribe", h.HandleTranscription)
+    // API routes for capability streams (translate/summarize/chat)
+    h.registerCapabilities(router)
 }
 
 func (h *Handler) HandleTranscription(c *gin.Context) {
