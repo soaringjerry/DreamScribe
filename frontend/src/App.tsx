@@ -173,6 +173,15 @@ function TranscriptionApp() {
     try {
       setError(null);
       setIsInitializing(true);
+      // Environment checks: secure context and AudioWorklet support
+      if (!window.isSecureContext) {
+        throw new Error('当前页面不是安全上下文。请使用 HTTPS 访问，或通过 http://localhost:PORT 访问（localhost 被视为安全）。');
+      }
+
+      const hasAudioWorklet = typeof (audioContext as any).audioWorklet !== 'undefined';
+      if (!hasAudioWorklet) {
+        throw new Error('当前环境缺少 AudioWorklet 支持。请使用最新版 Chrome/Edge，并确保通过 HTTPS 或 localhost 访问。');
+      }
       // reset session
       await clearSession(SESSION_ID);
       audioChunksRef.current = [];
