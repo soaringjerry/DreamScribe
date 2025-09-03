@@ -7,7 +7,7 @@ set -euo pipefail
 # - Optionally sets PCAS address/event type
 # - Pulls latest GHCR image and starts containers
 
-REPO_RAW_BASE="https://raw.githubusercontent.com/soaringjerry/DreamScribe/main/DreamScribe"
+REPO_RAW_BASE="https://raw.githubusercontent.com/soaringjerry/DreamScribe/main"
 
 INSTALL_DIR="${INSTALL_DIR:-/opt/dreamscribe}"
 DEV="false"
@@ -97,4 +97,3 @@ fi
 popd >/dev/null
 
 echo "Success. DreamScribe is up. Visit: http://localhost:8080"
-

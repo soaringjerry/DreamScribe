@@ -15,7 +15,7 @@ function Download-File {
   Invoke-WebRequest -UseBasicParsing -Uri $Url -OutFile $OutFile
 }
 
-$Base = 'https://raw.githubusercontent.com/soaringjerry/DreamScribe/main/DreamScribe'
+$Base = 'https://raw.githubusercontent.com/soaringjerry/DreamScribe/main'
 
 Write-Host "Installing/Updating DreamScribe into: $Dir" -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $Dir | Out-Null
@@ -51,4 +51,3 @@ if ($Dev -and (Test-Path (Join-Path $Dir 'docker-compose.dev.yml'))) {
 Pop-Location
 
 Write-Host 'Success. DreamScribe is up. Visit: http://localhost:8080' -ForegroundColor Cyan
-
