@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   dreamscribe:
     image: ghcr.io/soaringjerry/dreamscribe:latest

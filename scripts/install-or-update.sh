@@ -106,4 +106,4 @@ else
 fi
 popd >/dev/null
 
-echo "Success. DreamScribe is up. Visit: http://localhost:8080"
+echo "Success. DreamScribe is up. Visit: http://localhost:$HTTP_PORT"

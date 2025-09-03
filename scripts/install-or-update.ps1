@@ -57,4 +57,5 @@ if ($Dev -and (Test-Path (Join-Path $Dir 'docker-compose.dev.yml'))) {
 }
 Pop-Location
 
-Write-Host 'Success. DreamScribe is up. Visit: http://localhost:8080' -ForegroundColor Cyan
+$portVal = $Port
+Write-Host ("Success. DreamScribe is up. Visit: http://localhost:{0}" -f $portVal) -ForegroundColor Cyan

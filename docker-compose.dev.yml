@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # Optional: Auto-update dreamscribe to the latest image from GHCR in dev mode
   watchtower:
