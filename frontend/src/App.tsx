@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+﻿import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   PCMAudioRecorderProvider,
   usePCMAudioRecorderContext,
@@ -8,8 +8,12 @@ import { useBackendWebSocket } from './hooks/useBackendWebSocket';
 import { useSmartScroll } from './hooks/useSmartScroll';
 import { saveSession, loadSession, clearSession } from './db';
 import { throttle } from 'lodash';
-import { TranscriptItem } from './components/TranscriptItem';
 import './App.css';
+import { HeaderToolbar } from './components/HeaderToolbar';
+import { TranscriptPane } from './panes/TranscriptPane';
+import { TranslationPane } from './panes/TranslationPane';
+import { SummaryPanel } from './panes/SummaryPanel';
+import { ChatPanel } from './panes/ChatPanel';
 
 // High-resolution timestamp helper function
 const getHighResTimestamp = () => {
@@ -26,9 +30,9 @@ interface ConfirmedSegment {
 interface TranscriptLine {
   id: number;
   speaker: string;
-  confirmedSegments: ConfirmedSegment[]; // 累积最终转录的片段（包含时间戳）
-  partialText: string;                   // 当前完整的临时转录文本
-  lastSegmentEndTime: number;            // 当前行中最后一个确认片段的结束时间（秒）
+  confirmedSegments: ConfirmedSegment[]; // 绱Н鏈€缁堣浆褰曠殑鐗囨锛堝寘鍚椂闂存埑锛?
+  partialText: string;                   // 褰撳墠瀹屾暣鐨勪复鏃惰浆褰曟枃鏈?
+  lastSegmentEndTime: number;            // 褰撳墠琛屼腑鏈€鍚庝竴涓‘璁ょ墖娈电殑缁撴潫鏃堕棿锛堢锛?
 }
 
 function TranscriptionApp() {
@@ -42,7 +46,7 @@ function TranscriptionApp() {
   const [loadedAudioBlob, setLoadedAudioBlob] = useState<Blob | null>(null);
   const nextIdRef = useRef(1);
   const timerIntervalRef = useRef<number | null>(null);
-  const PARAGRAPH_BREAK_SILENCE_THRESHOLD = 2.0; // 2 秒的静默时间，用于判断是否开启新段落
+  const PARAGRAPH_BREAK_SILENCE_THRESHOLD = 2.0; // 2 绉掔殑闈欓粯鏃堕棿锛岀敤浜庡垽鏂槸鍚﹀紑鍚柊娈佃惤
   
   // Recording states
   const [, setIsRecording] = useState(false);
@@ -96,7 +100,7 @@ function TranscriptionApp() {
         const newLines = [...prevLines];
         
         // Check if this completes a sentence
-        const sentences = currentLineRef.current.match(/[^。？！]+[。？！]/g) || [];
+        const sentences = currentLineRef.current.match(/[^銆傦紵锛乚+[銆傦紵锛乚/g) || [];
         
         sentences.forEach((sentence) => {
           const trimmedSentence = sentence.trim();
@@ -145,7 +149,7 @@ function TranscriptionApp() {
         });
         
         // Remove processed sentences from buffer
-        const lastSentenceEnd = currentLineRef.current.search(/[。？！][^。？！]*$/);
+        const lastSentenceEnd = currentLineRef.current.search(/[銆傦紵锛乚[^銆傦紵锛乚*$/);
         if (lastSentenceEnd !== -1) {
           currentLineRef.current = currentLineRef.current.substring(lastSentenceEnd + 1);
         }
@@ -245,11 +249,11 @@ function TranscriptionApp() {
 
   const handleStart = async () => {
     // Password verification
-    const password = prompt("Please enter password：");
+    const password = prompt("Please enter password锛?);
     const correctPassword = "233333"; // Default password
 
     if (password !== correctPassword) {
-      alert("密码错误！");
+      alert("瀵嗙爜閿欒锛?);
       return; // Abort function execution
     }
     
@@ -316,7 +320,7 @@ function TranscriptionApp() {
         console.error('Failed to initialize MediaRecorder:', err);
       }
       
-      // 现在才真正开始转录
+      // 鐜板湪鎵嶇湡姝ｅ紑濮嬭浆褰?
       setIsTranscribing(true);
       setIsInitializing(false);
     } catch (err) {
@@ -425,7 +429,7 @@ function TranscriptionApp() {
     setError(null);
 
     try {
-      // 1. 寻找断点：获取最后一个确认片段的结束时间
+      // 1. 瀵绘壘鏂偣锛氳幏鍙栨渶鍚庝竴涓‘璁ょ墖娈电殑缁撴潫鏃堕棿
       let lastTimestamp = 0;
       if (linesRef.current.length > 0) {
         const lastLine = linesRef.current[linesRef.current.length - 1];
@@ -455,7 +459,7 @@ function TranscriptionApp() {
       }
 
       if (result.status === 'done' && result.transcript?.results) {
-        // 2. 过滤结果：只保留在断点之后的新片段
+        // 2. 杩囨护缁撴灉锛氬彧淇濈暀鍦ㄦ柇鐐逛箣鍚庣殑鏂扮墖娈?
         const newSegments = result.transcript.results
           .filter((item: { start_time: number }) => item.start_time > lastTimestamp)
           .map((item: { start_time: number; end_time: number; alternatives: Array<{ content?: string; speaker?: string }> }) => ({
@@ -474,7 +478,7 @@ function TranscriptionApp() {
         
         console.log(`Found ${newSegments.length} new segments to append.`);
 
-        // 3. 无缝合并
+        // 3. 鏃犵紳鍚堝苟
         setLines(prevLines => {
           const newLines = [...prevLines];
           
@@ -495,7 +499,7 @@ function TranscriptionApp() {
               endTime: segment.endTime,
             };
 
-            // 判断是否需要开启新段落（与之前的逻辑类似）
+            // 鍒ゆ柇鏄惁闇€瑕佸紑鍚柊娈佃惤锛堜笌涔嬪墠鐨勯€昏緫绫讳技锛?
             const timeGap = lastSpeakerLineIndex !== -1 && newLines[lastSpeakerLineIndex].lastSegmentEndTime > 0
               ? segment.startTime - newLines[lastSpeakerLineIndex].lastSegmentEndTime
               : 0;
@@ -577,7 +581,7 @@ function TranscriptionApp() {
           </label>
           {typewriterEnabled && (
             <div className="warning-text">
-              ⚠️ Experimental feature - may cause delays or incomplete display
+              鈿狅笍 Experimental feature - may cause delays or incomplete display
             </div>
           )}
         </div>
@@ -641,7 +645,7 @@ function TranscriptionApp() {
 
       {error && (
         <div className="alert alert-error">
-          <span>❌</span>
+          <span>鉂?/span>
           <span>{error}</span>
         </div>
       )}
@@ -668,23 +672,52 @@ function TranscriptionApp() {
                 {lines.map((line) => {
                   const confirmedText = line.confirmedSegments.map(seg => seg.text).join('');
                   
-                  return (
-                    <TranscriptItem
-                      key={line.id}
-                      speaker={line.speaker}
-                      confirmedText={confirmedText}
-                      partialText={line.partialText}
-                      typewriterEnabled={typewriterEnabled}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
+return (
+  <div className="App">
+    <HeaderToolbar
+      isTranscribing={isTranscribing}
+      isInitializing={isInitializing}
+      elapsedTime={elapsedTime}
+      wsStatus={wsStatus}
+      onStart={handleStart}
+      onStop={handleStop}
+      typewriterEnabled={typewriterEnabled}
+      onToggleTypewriter={setTypewriterEnabled}
+    />
+
+    {error && (
+      <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+        <span>{error}</span>
+      </div>
+    )}
+
+    <main className="neo-layout">
+      <TranscriptPane
+        lines={lines}
+        typewriterEnabled={typewriterEnabled}
+        scrollRef={originalColumnRef}
+      />
+
+      <TranslationPane lines={lines} targetLang="en" />
+
+      <div className="right-stack">
+        <SummaryPanel />
+        <ChatPanel />
+        <div className="controls" style={{ justifyContent: 'flex-end' }}>
+          <button onClick={handleDownloadText} className="btn btn-secondary" disabled={lines.length === 0}>
+            瀵煎嚭鏂囨湰
+          </button>
+          <button onClick={handleDownloadAudio} className="btn btn-secondary" disabled={audioChunksRef.current.length === 0}>
+            瀵煎嚭闊抽
+          </button>
+          <button onClick={handleClearSession} className="btn btn-danger" disabled={lines.length === 0 && audioChunksRef.current.length === 0}>
+            娓呯┖浼氳瘽
+          </button>
         </div>
       </div>
-    </div>
-  );
+    </main>
+  </div>
+);
 }
 
 function App() {
@@ -708,3 +741,4 @@ function App() {
 }
 
 export default App;
+

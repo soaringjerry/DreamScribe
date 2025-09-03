@@ -75,6 +75,64 @@ body {
   flex-direction: column;
 }
 
+/* New minimalist layout */
+.ds-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-sm);
+  border: 1px solid var(--gin);
+  background: #fff;
+  border-radius: 10px;
+  padding: var(--space-sm) var(--space-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-md);
+}
+.ds-header__left, .ds-header__right { display:flex; align-items:center; gap: var(--space-sm); }
+.ds-header__right { justify-self: end; }
+.ds-header__center { justify-self: center; }
+.ds-brand { font-weight: 700; letter-spacing: 0.04em; }
+.ds-chip { display:flex; align-items:center; gap: 6px; padding: 2px 8px; border:1px solid var(--gin); border-radius: 999px; background: var(--kinari); }
+.ds-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+.ds-chip__text { font-size: var(--font-size-sm); color: var(--hai); }
+.ds-timer { font-variant-numeric: tabular-nums; background: var(--kuro); color:#fff; padding: 4px 10px; border-radius: 6px; }
+.ds-switch { display:flex; align-items:center; gap:8px; color: var(--hai); font-size: var(--font-size-sm); }
+
+.neo-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-md);
+  min-height: 0;
+}
+.pane { display:flex; flex-direction:column; border:1px solid var(--gin); border-radius: 10px; overflow:hidden; background: #fff; }
+.pane__title { padding: 10px 14px; border-bottom: 1px solid var(--gin); font-weight: 600; color: var(--kuro); }
+.pane__body { padding: var(--space-sm); min-height: 0; }
+
+/* Right column split */
+.right-stack { display:flex; flex-direction:column; gap: var(--space-md); }
+.summary-panel { border:1px solid var(--gin); border-radius:10px; background:#fff; overflow:hidden; }
+.summary-toolbar { display:flex; align-items:center; justify-content:space-between; padding: 10px 14px; border-bottom:1px solid var(--gin); }
+.summary-actions { display:flex; gap:8px; }
+.summary-list { padding: var(--space-sm); display:flex; flex-direction:column; gap: var(--space-sm); }
+.summary-card { padding: 10px 12px; border:1px solid var(--gin); border-radius:8px; background:#fff; }
+.summary-kind { font-size: var(--font-size-sm); color: var(--hai); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .06em; }
+
+.chat-panel { border:1px solid var(--gin); border-radius:10px; background:#fff; display:flex; flex-direction:column; overflow:hidden; }
+.chat-list { padding: var(--space-sm); display:flex; flex-direction:column; gap: 10px; max-height: 40vh; overflow: auto; }
+.chat-item { display:flex; }
+.chat-user { justify-content: flex-end; }
+.chat-bubble { max-width: 80%; padding: 10px 12px; border:1px solid var(--gin); border-radius: 10px; background:#fff; }
+.chat-ai .chat-bubble { background: var(--kinari); }
+.chat-input { display:flex; gap: 8px; border-top:1px solid var(--gin); padding: 10px 12px; }
+.chat-input input { flex:1; padding: 10px 12px; border:1px solid var(--gin); border-radius: 8px; font-family: var(--font-sans); }
+
+@media (max-width: 1200px) {
+  .neo-layout { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 880px) {
+  .neo-layout { grid-template-columns: 1fr; }
+}
+
 /* Heading with Japanese minimalism */
 .App h1 {
   font-size: clamp(1.75rem, 4vw, 2.5rem);

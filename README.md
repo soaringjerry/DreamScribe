@@ -7,6 +7,7 @@ DreamScribe is an intelligent, real-time voice transcription and knowledge-assis
 Its ultimate vision is to become an indispensable **personal AI learning companion** for every lifelong learner. It actively assists during a class or meeting by understanding the conversation, providing timely hints, linking to relevant historical knowledge, and connecting to key background materials—**without giving away the answer**, thus stimulating active thinking.
 
 To dive deep into the core concepts, design philosophy, and grand vision of this project, please read our 📄 **[Project Vision & Philosophy](docs/VISION.md)** (Chinese).
+For the upcoming UI/UX and multimodal extensions, see **[Frontend UI Design (CN)](docs/FRONTEND_UI_DESIGN_CN.md)**.
 
 ## Core Features
 
