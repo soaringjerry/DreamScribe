@@ -3,6 +3,7 @@ package api
 import (
     "context"
     "encoding/json"
+    "fmt"
     "log"
     "net/http"
     "sync"
@@ -91,7 +92,7 @@ func (ch *capabilityHandler) startTranslate(c *gin.Context) {
         c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{"message": "invalid request"}})
         return
     }
-    attrs := map[string]string{"target_lang": req.TargetLang}
+    attrs := map[string]string{"target_lang": req.TargetLang, "content_type": "application/json"}
     for k, v := range req.Attrs { attrs[k] = v }
     ch.startGeneric(c, ch.cfg.PCAS.TranslateEventType, attrs)
 }
@@ -102,7 +103,7 @@ func (ch *capabilityHandler) startSummarize(c *gin.Context) {
         c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{"message": "invalid request"}})
         return
     }
-    attrs := map[string]string{"mode": req.Mode}
+    attrs := map[string]string{"mode": req.Mode, "content_type": "application/json"}
     for k, v := range req.Attrs { attrs[k] = v }
     ch.startGeneric(c, ch.cfg.PCAS.SummarizeEventType, attrs)
 }
@@ -183,8 +184,14 @@ func (ch *capabilityHandler) sendToStream(c *gin.Context) {
         c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{"message": "invalid text"}})
         return
     }
+    // If not JSON, wrap as {"text": "..."} to satisfy providers expecting JSON payload
+    payload := req.Text
+    trimmed := strings.TrimSpace(req.Text)
+    if !(strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[")) {
+        payload = fmt.Sprintf(`{"text": %q}`, req.Text)
+    }
     select {
-    case s.in <- []byte(req.Text):
+    case s.in <- []byte(payload):
         c.JSON(http.StatusOK, gin.H{"ok": true})
     default:
         c.JSON(http.StatusTooManyRequests, gin.H{"error": gin.H{"message": "backpressure"}})
@@ -248,8 +255,10 @@ func (ch *capabilityHandler) chatOnce(c *gin.Context) {
         }
     }()
 
-    // send user message then close input
-    in <- []byte(req.Message)
+    // send user message as JSON then close input (include both message and text for compatibility)
+    msgObj := map[string]any{"message": req.Message, "text": req.Message}
+    mb, _ := json.Marshal(msgObj)
+    in <- mb
     close(in)
 
     notify := c.Request.Context().Done()
@@ -267,4 +276,3 @@ func (ch *capabilityHandler) chatOnce(c *gin.Context) {
         }
     }
 }
-
