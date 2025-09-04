@@ -21,12 +21,13 @@ SUMMARIZE_EVENT_TYPE="${SUMMARIZE_EVENT_TYPE:-}"
 CHAT_EVENT_TYPE="${CHAT_EVENT_TYPE:-}"
 USER_ID="${USER_ID:-default-user}"
 INTERACTIVE="false"
+UPDATE_ONLY="false"
 
 usage() {
   cat <<EOF
 Usage: install-or-update.sh [--dir PATH] [--dev] [--port N] [--pcas HOST:PORT] [--event-type TYPE]
                             [--translate-type TYPE] [--summarize-type TYPE] [--chat-type TYPE]
-                            [--user-id ID] [--admin-token TOKEN] [--interactive]
+                            [--user-id ID] [--admin-token TOKEN] [--interactive] [--update]
 
 Options:
   --dir PATH         Install directory (default: /opt/dreamscribe)
@@ -40,6 +41,7 @@ Options:
   --user-id ID       Set user.id in config (default: default-user)
   --admin-token T    Set PCAS_ADMIN_TOKEN env for container (optional)
   --interactive      Run interactive wizard to generate/update config
+  --update           Update only: refresh compose, pull image, recreate containers; keep existing config/.env
 
 Environment overrides:
   INSTALL_DIR, PCAS_ADDRESS, EVENT_TYPE, TRANSLATE_EVENT_TYPE, SUMMARIZE_EVENT_TYPE, CHAT_EVENT_TYPE, USER_ID, PCAS_ADMIN_TOKEN
@@ -74,6 +76,8 @@ while [[ $# -gt 0 ]]; do
       PCAS_ADMIN_TOKEN="$2"; shift 2;;
     --interactive|-i)
       INTERACTIVE="true"; shift;;
+    --update)
+      UPDATE_ONLY="true"; shift;;
     -h|--help)
       usage; exit 0;;
     *)
@@ -180,7 +184,7 @@ if [[ -n "$CHAT_EVENT_TYPE" ]]; then
 fi
 
 # Interactive wizard to generate/update config if requested
-if [[ "$INTERACTIVE" == "true" ]]; then
+if [[ "$INTERACTIVE" == "true" && "$UPDATE_ONLY" != "true" ]]; then
   # If config already exists, ask whether to modify it; default: keep as-is
   if [[ -f "$CONFIG_PROD" && -s "$CONFIG_PROD" ]]; then
     keep=$(prompt "Detected existing config at $CONFIG_PROD. Keep as-is? (Y/n)" "Y")
@@ -220,7 +224,7 @@ echo "Pulling latest image and starting containers..."
 pushd "$INSTALL_DIR" >/dev/null
 # Write .env for compose variable substitution.
 # Preserve existing .env if present and not explicitly changing values.
-if [[ -f .env && "$INTERACTIVE" == "true" && -z "${PCAS_ADMIN_TOKEN:-}" && "$HTTP_PORT_SET" != "true" ]]; then
+if [[ -f .env && "$INTERACTIVE" == "true" && "$UPDATE_ONLY" != "true" && -z "${PCAS_ADMIN_TOKEN:-}" && "$HTTP_PORT_SET" != "true" ]]; then
   echo "Preserving existing .env"
 else
   {
@@ -230,12 +234,24 @@ else
     fi
   } > .env
 fi
+FORCE_RECREATE="false"
+# If admin token provided or interactive config changed port, force recreate to inject new env
+if [[ -n "${PCAS_ADMIN_TOKEN:-}" || "$HTTP_PORT_SET" == "true" ]]; then
+  FORCE_RECREATE="true"
+fi
+
 if [[ "$DEV" == "true" && -f "docker-compose.dev.yml" ]]; then
   docker compose -f docker-compose.yml -f docker-compose.dev.yml pull
-  docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+  if [[ "$UPDATE_ONLY" == "true" || "$FORCE_RECREATE" == "true" ]]; then
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml down --remove-orphans || true
+  fi
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --remove-orphans
 else
   docker compose -f docker-compose.yml pull
-  docker compose -f docker-compose.yml up -d
+  if [[ "$UPDATE_ONLY" == "true" || "$FORCE_RECREATE" == "true" ]]; then
+    docker compose -f docker-compose.yml down --remove-orphans || true
+  fi
+  docker compose -f docker-compose.yml up -d --remove-orphans
 fi
 popd >/dev/null
 

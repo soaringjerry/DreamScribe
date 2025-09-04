@@ -9,7 +9,8 @@ param(
   [string]$ChatType = "",
   [string]$UserId = "default-user",
   [string]$AdminToken = "",
-  [switch]$Interactive
+  [switch]$Interactive,
+  [switch]$Update
 )
 
 $ErrorActionPreference = 'Stop'
@@ -64,7 +65,7 @@ user:
   Set-Content -Path $Path -Value $yaml -Encoding UTF8
 }
 
-if ($Interactive) {
+if ($Interactive -and -not $Update) {
   $modify = 'N'
   if (Test-Path $Config) {
     $modify = Read-Host "Detected existing config at $Config. Modify it? (y/N)"
@@ -123,7 +124,7 @@ if ($UserId) {
 Push-Location $Dir
 # Write .env for compose variable substitution
 $envFile = (Join-Path $Dir '.env')
-if ($Interactive -and (Test-Path $envFile) -and -not $PSBoundParameters.ContainsKey('Port') -and -not $PSBoundParameters.ContainsKey('AdminToken')) {
+if ($Interactive -and -not $Update -and (Test-Path $envFile) -and -not $PSBoundParameters.ContainsKey('Port') -and -not $PSBoundParameters.ContainsKey('AdminToken')) {
   Write-Host 'Preserving existing .env' -ForegroundColor Cyan
 } else {
   "HTTP_PORT=$Port" | Set-Content -Path $envFile -Encoding UTF8
@@ -131,12 +132,17 @@ if ($Interactive -and (Test-Path $envFile) -and -not $PSBoundParameters.Contains
     Add-Content -Path $envFile -Value "PCAS_ADMIN_TOKEN=$AdminToken"
   }
 }
+$forceRecreate = $false
+if ($PSBoundParameters.ContainsKey('AdminToken') -or $PSBoundParameters.ContainsKey('Port')) { $forceRecreate = $true }
+
 if ($Dev -and (Test-Path (Join-Path $Dir 'docker-compose.dev.yml'))) {
   docker compose -f docker-compose.yml -f docker-compose.dev.yml pull
-  docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+  if ($Update -or $forceRecreate) { docker compose -f docker-compose.yml -f docker-compose.dev.yml down --remove-orphans }
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --remove-orphans
 } else {
   docker compose -f docker-compose.yml pull
-  docker compose -f docker-compose.yml up -d
+  if ($Update -or $forceRecreate) { docker compose -f docker-compose.yml down --remove-orphans }
+  docker compose -f docker-compose.yml up -d --remove-orphans
 }
 Pop-Location
 
