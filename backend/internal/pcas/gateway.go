@@ -1,16 +1,16 @@
 package pcas
 
 import (
-	"context"
-	"fmt"
-	"io"
-	"log"
-	"sync"
+    "context"
+    "fmt"
+    "io"
+    "log"
+    "sync"
 
-	"github.com/pcas/dreams-cli/backend/internal/distiller"
-	busv1 "github.com/pcas/dreams-cli/backend/gen/pcas/bus/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+    "github.com/pcas/dreams-cli/backend/internal/distiller"
+    busv1 "github.com/pcas/dreams-cli/backend/gen/pcas/bus/v1"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
 )
 
 type Gateway struct {
@@ -114,43 +114,53 @@ func (g *Gateway) ProcessStream(ctx context.Context, eventType string, audioFrom
 	}()
 
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer close(textToClient)
-		
-		for {
-			resp, err := stream.Recv()
-			if err == io.EOF {
-				log.Println("PCAS stream ended")
-				return
-			}
-			if err != nil {
-				errChan <- fmt.Errorf("failed to receive from PCAS: %w", err)
-				return
-			}
+    go func() {
+        defer wg.Done()
+        defer close(textToClient)
 
-			switch resp := resp.ResponseType.(type) {
-			case *busv1.InteractResponse_Data:
-				text := string(resp.Data.Content)
-				
-				if sentence := g.distiller.Process(text); sentence != "" {
-					if err := g.publisher.PublishMemory(ctx, sentence, userID); err != nil {
-						log.Printf("Failed to publish memory: %v", err)
-					} else {
-						log.Printf("Published memory event: %s", sentence)
-					}
-				}
-				
-				textToClient <- resp.Data.Content
-			case *busv1.InteractResponse_Error:
-				errChan <- fmt.Errorf("PCAS error: %s", resp.Error.Message)
-				return
-			case *busv1.InteractResponse_ServerEnd:
-				log.Println("PCAS server ended stream")
-				return
-			}
-		}
-	}()
+        for {
+            resp, err := stream.Recv()
+            if err == io.EOF {
+                log.Println("PCAS stream ended")
+                return
+            }
+            if err != nil {
+                // surface error to client stream as JSON, then report upstream
+                select {
+                case textToClient <- []byte(fmt.Sprintf("{\"error\":%q}", fmt.Sprintf("recv error: %v", err))):
+                default:
+                }
+                errChan <- fmt.Errorf("failed to receive from PCAS: %w", err)
+                return
+            }
+
+            switch resp := resp.ResponseType.(type) {
+            case *busv1.InteractResponse_Data:
+                text := string(resp.Data.Content)
+                
+                if sentence := g.distiller.Process(text); sentence != "" {
+                    if err := g.publisher.PublishMemory(ctx, sentence, userID); err != nil {
+                        log.Printf("Failed to publish memory: %v", err)
+                    } else {
+                        log.Printf("Published memory event: %s", sentence)
+                    }
+                }
+                
+                textToClient <- resp.Data.Content
+            case *busv1.InteractResponse_Error:
+                // forward error to client stream as JSON for visibility
+                select {
+                case textToClient <- []byte(fmt.Sprintf("{\"error\":%q}", resp.Error.Message)):
+                default:
+                }
+                errChan <- fmt.Errorf("PCAS error: %s", resp.Error.Message)
+                return
+            case *busv1.InteractResponse_ServerEnd:
+                log.Println("PCAS server ended stream")
+                return
+            }
+        }
+    }()
 
 	wg.Wait()
 
