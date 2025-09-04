@@ -253,6 +253,12 @@ else
   fi
   docker compose -f docker-compose.yml up -d --remove-orphans
 fi
+# Read actual port from preserved .env for accurate message
+if [[ -f "$INSTALL_DIR/.env" ]]; then
+  env_port=$(grep -E '^HTTP_PORT=' "$INSTALL_DIR/.env" | sed 's/^HTTP_PORT=//') || true
+  if [[ -n "$env_port" ]]; then HTTP_PORT="$env_port"; fi
+fi
+
 popd >/dev/null
 
 echo "Success. DreamScribe is up. Visit: http://localhost:$HTTP_PORT"

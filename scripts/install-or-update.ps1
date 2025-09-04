@@ -146,5 +146,12 @@ if ($Dev -and (Test-Path (Join-Path $Dir 'docker-compose.dev.yml'))) {
 }
 Pop-Location
 
+# Read actual port from preserved .env for accurate message
+$envFile = Join-Path $Dir '.env'
+if (Test-Path $envFile) {
+  $line = (Get-Content $envFile | Where-Object { $_ -match '^HTTP_PORT=' } | Select-Object -First 1)
+  if ($line) { $Port = ($line -replace '^HTTP_PORT=','') }
+}
+
 $portVal = $Port
 Write-Host ("Success. DreamScribe is up. Visit: http://localhost:{0}" -f $portVal) -ForegroundColor Cyan
