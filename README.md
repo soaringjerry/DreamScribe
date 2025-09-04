@@ -106,11 +106,21 @@ Options:
 - `--port` or `-Port`: host port to expose (default 8080)
 - `--pcas` / `-PCASAddress`: override `pcas.address`
 - `--event-type` / `-EventType`: override `pcas.eventType`
+ - `--translate-type` / `-TranslateType`: override `pcas.translateEventType`
+ - `--summarize-type` / `-SummarizeType`: override `pcas.summarizeEventType`
+ - `--chat-type` / `-ChatType`: override `pcas.chatEventType`
+ - `--user-id` / `-UserId`: set `user.id`
+ - `--admin-token` / `-AdminToken`: export `PCAS_ADMIN_TOKEN` into container
 
 What the script does:
 - Downloads latest `docker-compose.yml` (+dev overlay) from GitHub
 - Ensures `configs/config.production.yaml` exists (created from example if missing)
 - Applies overrides if provided, then runs `docker compose pull && up -d`
+ - If `--interactive` is used, guides you through config generation
+
+Diagnostics:
+- Open `http://<host>:<port>/test` for a built-in test console (WS/SSE/Chat/Admin)
+- Check `GET /api/health` for PCAS readiness (per capability)
 
 CI status:
 - Build & push to GHCR: `.github/workflows/docker-build.yml` (keep as-is)
