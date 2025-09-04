@@ -128,6 +128,19 @@ func (h *Handler) handleTestPage(c *gin.Context) {
     </div>
     <pre id="chatLog"></pre>
   </div>
+  <div class="card">
+    <h2>Admin: Add Policy Rule</h2>
+    <div class="row">
+      <input id="arEvent" placeholder="event_type" style="flex:1" />
+      <input id="arProv" placeholder="provider" style="flex:1" />
+    </div>
+    <div class="row">
+      <input id="arName" placeholder="name (optional)" style="flex:1" />
+      <input id="arPrompt" placeholder="prompt_template (optional)" style="flex:1" />
+      <button id="arSend">Register</button>
+    </div>
+    <pre id="arLog"></pre>
+  </div>
 
   <script>
     // Health
@@ -210,9 +223,22 @@ func (h *Handler) handleTestPage(c *gin.Context) {
       const reader = r.body.getReader(); const dec = new TextDecoder(); let buf='';
       while(true){ const {done, value} = await reader.read(); if(done) break; buf += dec.decode(value,{stream:true}); el.textContent = buf; }
     };
+
+    // Admin add rule
+    document.getElementById('arSend').onclick = async () => {
+      const out = document.getElementById('arLog'); out.textContent='';
+      const eventType = document.getElementById('arEvent').value;
+      const provider = document.getElementById('arProv').value;
+      const name = document.getElementById('arName').value;
+      const prompt = document.getElementById('arPrompt').value;
+      if(!eventType || !provider) { out.textContent='event_type and provider are required'; return; }
+      try {
+        const r = await getJSON('/api/admin/policy/add_rule', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({event_type:eventType, provider:provider, name:name, prompt_template:prompt})});
+        out.textContent = JSON.stringify(r);
+      } catch(e){ out.textContent = 'ERR: '+e.message; }
+    };
   </script>
 </body>
 </html>`
     c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(page))
 }
-

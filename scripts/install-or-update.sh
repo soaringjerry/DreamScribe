@@ -25,7 +25,7 @@ usage() {
   cat <<EOF
 Usage: install-or-update.sh [--dir PATH] [--dev] [--port N] [--pcas HOST:PORT] [--event-type TYPE]
                             [--translate-type TYPE] [--summarize-type TYPE] [--chat-type TYPE]
-                            [--user-id ID] [--interactive]
+                            [--user-id ID] [--admin-token TOKEN] [--interactive]
 
 Options:
   --dir PATH         Install directory (default: /opt/dreamscribe)
@@ -37,10 +37,11 @@ Options:
   --summarize-type T Set pcas.summarizeEventType in config
   --chat-type T      Set pcas.chatEventType in config
   --user-id ID       Set user.id in config (default: default-user)
+  --admin-token T    Set PCAS_ADMIN_TOKEN env for container (optional)
   --interactive      Run interactive wizard to generate/update config
 
 Environment overrides:
-  INSTALL_DIR, PCAS_ADDRESS, EVENT_TYPE, TRANSLATE_EVENT_TYPE, SUMMARIZE_EVENT_TYPE, CHAT_EVENT_TYPE, USER_ID
+  INSTALL_DIR, PCAS_ADDRESS, EVENT_TYPE, TRANSLATE_EVENT_TYPE, SUMMARIZE_EVENT_TYPE, CHAT_EVENT_TYPE, USER_ID, PCAS_ADMIN_TOKEN
 
 Examples:
   sudo bash -c "$(curl -fsSL $REPO_RAW_BASE/scripts/install-or-update.sh)" -- --dir /opt/dreamscribe --pcas localhost:50051
@@ -68,6 +69,8 @@ while [[ $# -gt 0 ]]; do
       CHAT_EVENT_TYPE="$2"; shift 2;;
     --user-id)
       USER_ID="$2"; shift 2;;
+    --admin-token)
+      PCAS_ADMIN_TOKEN="$2"; shift 2;;
     --interactive|-i)
       INTERACTIVE="true"; shift;;
     -h|--help)
@@ -185,6 +188,7 @@ if [[ "$INTERACTIVE" == "true" ]]; then
   local_default_ch="${CHAT_EVENT_TYPE:-capability.streaming.chat.v1}"
   local_default_uid="${USER_ID:-default-user}"
   local_default_port="${HTTP_PORT:-8080}"
+  local_default_admin="${PCAS_ADMIN_TOKEN:-}"
 
   PCAS_ADDRESS=$(prompt "PCAS address (host:port)" "$local_default_pcas")
   EVENT_TYPE=$(prompt "Transcribe eventType" "$local_default_event")
@@ -193,6 +197,7 @@ if [[ "$INTERACTIVE" == "true" ]]; then
   CHAT_EVENT_TYPE=$(prompt "Chat eventType" "$local_default_ch")
   USER_ID=$(prompt "User ID" "$local_default_uid")
   HTTP_PORT=$(prompt "Host HTTP port to expose" "$local_default_port")
+  PCAS_ADMIN_TOKEN=$(prompt "PCAS admin token (optional)" "$local_default_admin")
 
   echo "\nWriting config to $CONFIG_PROD ..."
   write_config "$CONFIG_PROD"
@@ -201,7 +206,12 @@ fi
 echo "Pulling latest image and starting containers..."
 pushd "$INSTALL_DIR" >/dev/null
 # Write .env for compose variable substitution
-echo "HTTP_PORT=$HTTP_PORT" > .env
+{
+  echo "HTTP_PORT=$HTTP_PORT"
+  if [[ -n "${PCAS_ADMIN_TOKEN:-}" ]]; then
+    echo "PCAS_ADMIN_TOKEN=$PCAS_ADMIN_TOKEN"
+  fi
+} > .env
 if [[ "$DEV" == "true" && -f "docker-compose.dev.yml" ]]; then
   docker compose -f docker-compose.yml -f docker-compose.dev.yml pull
   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d

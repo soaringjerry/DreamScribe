@@ -8,6 +8,7 @@ services:
     environment:
       - CONFIG_PATH=/app/config.yaml
       - STATIC_PATH=/app/static
+      - PCAS_ADMIN_TOKEN=${PCAS_ADMIN_TOKEN:-}
     volumes:
       # Mount your production config into the container
       - ./configs/config.production.yaml:/app/config.yaml:ro

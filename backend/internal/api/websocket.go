@@ -29,6 +29,8 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
     h.registerCapabilities(router)
     // Diagnostics and test utilities (/test page + /api/health)
     h.registerDiagnostics(router)
+    // Admin management routes (policy add rule)
+    h.registerAdmin(router)
 }
 
 func (h *Handler) HandleTranscription(c *gin.Context) {

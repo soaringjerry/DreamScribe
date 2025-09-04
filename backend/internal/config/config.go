@@ -23,6 +23,7 @@ type PCASConfig struct {
     TranslateEventType string `mapstructure:"translateEventType"`
     SummarizeEventType string `mapstructure:"summarizeEventType"`
     ChatEventType      string `mapstructure:"chatEventType"`
+    AdminToken         string `mapstructure:"adminToken"`
 }
 
 type UserConfig struct {
@@ -51,6 +52,11 @@ func LoadConfig(path string) (*Config, error) {
     }
     if config.PCAS.ChatEventType == "" {
         config.PCAS.ChatEventType = "capability.streaming.chat.v1"
+    }
+
+    // Allow environment override for admin token
+    if envTok := os.Getenv("PCAS_ADMIN_TOKEN"); envTok != "" {
+        config.PCAS.AdminToken = envTok
     }
 
     return &config, nil

@@ -8,6 +8,7 @@ param(
   [string]$SummarizeType = "",
   [string]$ChatType = "",
   [string]$UserId = "default-user",
+  [string]$AdminToken = "",
   [switch]$Interactive
 )
 
@@ -74,6 +75,8 @@ if ($Interactive) {
   if ($uidIn) { $UserId = $uidIn }
   $portIn = Read-Host ("Host HTTP port to expose [{0}]" -f $Port)
   if ($portIn) { $Port = [int]$portIn }
+  $admIn = Read-Host ("PCAS admin token (optional) [{0}]" -f $AdminToken)
+  if ($admIn) { $AdminToken = $admIn }
   Write-Host ('Writing config to {0} ...' -f $Config) -ForegroundColor Yellow
   Write-ConfigYaml -Path $Config -Addr $PCASAddress -ET $EventType -TrET $TranslateType -SmET $SummarizeType -ChET $ChatType -Uid $UserId
 }
@@ -109,7 +112,10 @@ if ($UserId) {
 
 Push-Location $Dir
 # Write .env for compose variable substitution
-Set-Content -Path (Join-Path $Dir '.env') -Value "HTTP_PORT=$Port" -Encoding UTF8
+"HTTP_PORT=$Port" | Set-Content -Path (Join-Path $Dir '.env') -Encoding UTF8
+if ($AdminToken) {
+  Add-Content -Path (Join-Path $Dir '.env') -Value "PCAS_ADMIN_TOKEN=$AdminToken"
+}
 if ($Dev -and (Test-Path (Join-Path $Dir 'docker-compose.dev.yml'))) {
   docker compose -f docker-compose.yml -f docker-compose.dev.yml pull
   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
