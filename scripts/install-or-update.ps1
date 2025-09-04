@@ -124,7 +124,7 @@ if ($UserId) {
 Push-Location $Dir
 # Write .env for compose variable substitution
 $envFile = (Join-Path $Dir '.env')
-if ($Interactive -and -not $Update -and (Test-Path $envFile) -and -not $PSBoundParameters.ContainsKey('Port') -and -not $PSBoundParameters.ContainsKey('AdminToken')) {
+if ((Test-Path $envFile) -and -not $PSBoundParameters.ContainsKey('Port') -and -not $PSBoundParameters.ContainsKey('AdminToken')) {
   Write-Host 'Preserving existing .env' -ForegroundColor Cyan
 } else {
   "HTTP_PORT=$Port" | Set-Content -Path $envFile -Encoding UTF8

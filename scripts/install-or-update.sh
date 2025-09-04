@@ -223,8 +223,8 @@ fi
 echo "Pulling latest image and starting containers..."
 pushd "$INSTALL_DIR" >/dev/null
 # Write .env for compose variable substitution.
-# Preserve existing .env if present and not explicitly changing values.
-if [[ -f .env && "$INTERACTIVE" == "true" && "$UPDATE_ONLY" != "true" && -z "${PCAS_ADMIN_TOKEN:-}" && "$HTTP_PORT_SET" != "true" ]]; then
+# Preserve existing .env if present and not explicitly changing values (works for both update and non-interactive runs).
+if [[ -f .env && "$HTTP_PORT_SET" != "true" && -z "${PCAS_ADMIN_TOKEN:-}" ]]; then
   echo "Preserving existing .env"
 else
   {
