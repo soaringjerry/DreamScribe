@@ -52,11 +52,15 @@ func (p *Publisher) PublishAdminPolicyAddRule(ctx context.Context, adminToken, e
         payload["name"] = name
     }
     st, _ := structpb.NewStruct(payload)
-    anyPayload, _ := anypb.New(st)
+    // Some PCAS versions expect google.protobuf.Value wrapping a Struct
+    val := structpb.NewStructValue(st)
+    anyPayload, _ := anypb.New(val)
 
     attrs := map[string]string{}
     if adminToken != "" {
+        // Include both snake_case and camelCase for compatibility
         attrs["admin_token"] = adminToken
+        attrs["adminToken"] = adminToken
     }
 
     evt := &eventsv1.Event{
