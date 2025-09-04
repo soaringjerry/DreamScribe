@@ -95,6 +95,13 @@ func (ch *capabilityHandler) startTranslate(c *gin.Context) {
     attrs := map[string]string{}
     if req.TargetLang != "" { attrs["target_lang"] = req.TargetLang }
     for k, v := range req.Attrs { attrs[k] = v }
+    // Provide sensible defaults so testers don't have to hand-write attrs JSON
+    if _, ok := attrs["system"]; !ok {
+        attrs["system"] = "You are a translator. Translate all user input to English."
+    }
+    if _, ok := attrs["model"]; !ok {
+        attrs["model"] = "gpt-5-mini"
+    }
     ch.startGeneric(c, ch.cfg.PCAS.TranslateEventType, attrs)
 }
 
@@ -107,6 +114,12 @@ func (ch *capabilityHandler) startSummarize(c *gin.Context) {
     attrs := map[string]string{}
     if req.Mode != "" { attrs["mode"] = req.Mode }
     for k, v := range req.Attrs { attrs[k] = v }
+    if _, ok := attrs["system"]; !ok {
+        attrs["system"] = "Summarize the user input in 3 concise bullet points."
+    }
+    if _, ok := attrs["model"]; !ok {
+        attrs["model"] = "gpt-5-mini"
+    }
     ch.startGeneric(c, ch.cfg.PCAS.SummarizeEventType, attrs)
 }
 
@@ -260,6 +273,12 @@ func (ch *capabilityHandler) chatOnce(c *gin.Context) {
         defer gw.Close()
         attrs := map[string]string{"session_id": req.SessionID}
         for k, v := range req.Attrs { attrs[k] = v }
+        if _, ok := attrs["system"]; !ok {
+            attrs["system"] = "You are a helpful assistant."
+        }
+        if _, ok := attrs["model"]; !ok {
+            attrs["model"] = "gpt-5"
+        }
         if err := gw.StartGenericStream(ctx, ch.cfg.PCAS.ChatEventType, attrs, in, out); err != nil {
             log.Printf("pcas chat error: %v", err)
         }

@@ -174,6 +174,16 @@ func (h *Handler) handleTestPage(c *gin.Context) {
     };
     wsCloseBtn.onclick = () => { try{ ws && ws.close(); }catch{} };
 
+    // Default attrs presets for quick testing (no need to hand-write JSON)
+    const defaults = {
+      translate: { model: 'gpt-5-mini', system: 'You are a translator. Translate all user input to English.' },
+      summarize: { model: 'gpt-5-mini', system: 'Summarize the user input in 3 concise bullet points.' },
+      chat:      { model: 'gpt-5', system: 'You are a helpful assistant.' }
+    };
+    document.getElementById('trAttrs').value = JSON.stringify(defaults.translate);
+    document.getElementById('smAttrs').value = JSON.stringify(defaults.summarize);
+    document.getElementById('chatAttrs').value = JSON.stringify(defaults.chat);
+
     // Translate SSE
     let trId = null, trES = null;
     const trLog = document.getElementById('trLog');
