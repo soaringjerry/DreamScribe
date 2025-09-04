@@ -3,7 +3,12 @@ param(
   [switch]$Dev,
   [int]$Port = 8080,
   [string]$PCASAddress = "",
-  [string]$EventType = ""
+  [string]$EventType = "",
+  [string]$TranslateType = "",
+  [string]$SummarizeType = "",
+  [string]$ChatType = "",
+  [string]$UserId = "default-user",
+  [switch]$Interactive
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,6 +37,47 @@ if (-not (Test-Path $Config)) {
   Download-File -Url "$Base/configs/config.example.yaml" -OutFile $Config
 }
 
+function Write-ConfigYaml {
+  param(
+    [string]$Path,
+    [string]$Addr,
+    [string]$ET,
+    [string]$TrET,
+    [string]$SmET,
+    [string]$ChET,
+    [string]$Uid
+  )
+  $yaml = @"
+server:
+  host: "0.0.0.0"
+  port: "8080"
+pcas:
+  address: "$Addr"
+  eventType: "${ET}"
+  translateEventType: "${TrET}"
+  summarizeEventType: "${SmET}"
+  chatEventType: "${ChET}"
+user:
+  id: "${Uid}"
+"@
+  Set-Content -Path $Path -Value $yaml -Encoding UTF8
+}
+
+if ($Interactive) {
+  Write-Host 'Running interactive configuration wizard...' -ForegroundColor Cyan
+  if (-not $PCASAddress) { $PCASAddress = Read-Host 'PCAS address (host:port) [localhost:50051]' ; if (-not $PCASAddress) { $PCASAddress = 'localhost:50051' } }
+  if (-not $EventType) { $EventType = Read-Host 'Transcribe eventType [capability.streaming.transcribe.v1]' ; if (-not $EventType) { $EventType = 'capability.streaming.transcribe.v1' } }
+  if (-not $TranslateType) { $TranslateType = Read-Host 'Translate eventType [capability.streaming.translate.v1]' ; if (-not $TranslateType) { $TranslateType = 'capability.streaming.translate.v1' } }
+  if (-not $SummarizeType) { $SummarizeType = Read-Host 'Summarize eventType [capability.streaming.summarize.v1]' ; if (-not $SummarizeType) { $SummarizeType = 'capability.streaming.summarize.v1' } }
+  if (-not $ChatType) { $ChatType = Read-Host 'Chat eventType [capability.streaming.chat.v1]' ; if (-not $ChatType) { $ChatType = 'capability.streaming.chat.v1' } }
+  $uidIn = Read-Host ("User ID [{0}]" -f $UserId)
+  if ($uidIn) { $UserId = $uidIn }
+  $portIn = Read-Host ("Host HTTP port to expose [{0}]" -f $Port)
+  if ($portIn) { $Port = [int]$portIn }
+  Write-Host ('Writing config to {0} ...' -f $Config) -ForegroundColor Yellow
+  Write-ConfigYaml -Path $Config -Addr $PCASAddress -ET $EventType -TrET $TranslateType -SmET $SummarizeType -ChET $ChatType -Uid $UserId
+}
+
 if ($PCASAddress) {
   if ($PCASAddress -notmatch ':') {
     Write-Warning 'PCAS address missing port. Defaulting to :50051'
@@ -43,6 +89,22 @@ if ($PCASAddress) {
 if ($EventType) {
   Write-Host "Setting pcas.eventType=$EventType" -ForegroundColor Green
   (Get-Content $Config) -replace 'eventType:\s*".*"', "eventType: \"$EventType\"" | Set-Content $Config -Encoding UTF8
+}
+if ($TranslateType) {
+  Write-Host "Setting pcas.translateEventType=$TranslateType" -ForegroundColor Green
+  (Get-Content $Config) -replace 'translateEventType:\s*".*"', "translateEventType: \"$TranslateType\"" | Set-Content $Config -Encoding UTF8
+}
+if ($SummarizeType) {
+  Write-Host "Setting pcas.summarizeEventType=$SummarizeType" -ForegroundColor Green
+  (Get-Content $Config) -replace 'summarizeEventType:\s*".*"', "summarizeEventType: \"$SummarizeType\"" | Set-Content $Config -Encoding UTF8
+}
+if ($ChatType) {
+  Write-Host "Setting pcas.chatEventType=$ChatType" -ForegroundColor Green
+  (Get-Content $Config) -replace 'chatEventType:\s*".*"', "chatEventType: \"$ChatType\"" | Set-Content $Config -Encoding UTF8
+}
+if ($UserId) {
+  Write-Host "Setting user.id=$UserId" -ForegroundColor Green
+  (Get-Content $Config) -replace 'id:\s*".*"', "id: \"$UserId\"" | Set-Content $Config -Encoding UTF8
 }
 
 Push-Location $Dir

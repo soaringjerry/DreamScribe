@@ -14,10 +14,18 @@ DEV="false"
 HTTP_PORT="${HTTP_PORT:-8080}"
 PCAS_ADDRESS="${PCAS_ADDRESS:-}"
 EVENT_TYPE="${EVENT_TYPE:-}"
+# Optional capability-specific event types (fallback to defaults in config if empty)
+TRANSLATE_EVENT_TYPE="${TRANSLATE_EVENT_TYPE:-}"
+SUMMARIZE_EVENT_TYPE="${SUMMARIZE_EVENT_TYPE:-}"
+CHAT_EVENT_TYPE="${CHAT_EVENT_TYPE:-}"
+USER_ID="${USER_ID:-default-user}"
+INTERACTIVE="false"
 
 usage() {
   cat <<EOF
 Usage: install-or-update.sh [--dir PATH] [--dev] [--port N] [--pcas HOST:PORT] [--event-type TYPE]
+                            [--translate-type TYPE] [--summarize-type TYPE] [--chat-type TYPE]
+                            [--user-id ID] [--interactive]
 
 Options:
   --dir PATH         Install directory (default: /opt/dreamscribe)
@@ -25,9 +33,14 @@ Options:
   --port N           Host port to expose (default: 8080)
   --pcas HOST:PORT   Set pcas.address in config
   --event-type TYPE  Set pcas.eventType in config
+  --translate-type T Set pcas.translateEventType in config
+  --summarize-type T Set pcas.summarizeEventType in config
+  --chat-type T      Set pcas.chatEventType in config
+  --user-id ID       Set user.id in config (default: default-user)
+  --interactive      Run interactive wizard to generate/update config
 
 Environment overrides:
-  INSTALL_DIR, PCAS_ADDRESS, EVENT_TYPE
+  INSTALL_DIR, PCAS_ADDRESS, EVENT_TYPE, TRANSLATE_EVENT_TYPE, SUMMARIZE_EVENT_TYPE, CHAT_EVENT_TYPE, USER_ID
 
 Examples:
   sudo bash -c "$(curl -fsSL $REPO_RAW_BASE/scripts/install-or-update.sh)" -- --dir /opt/dreamscribe --pcas localhost:50051
@@ -47,6 +60,16 @@ while [[ $# -gt 0 ]]; do
       PCAS_ADDRESS="$2"; shift 2;;
     --event-type)
       EVENT_TYPE="$2"; shift 2;;
+    --translate-type)
+      TRANSLATE_EVENT_TYPE="$2"; shift 2;;
+    --summarize-type)
+      SUMMARIZE_EVENT_TYPE="$2"; shift 2;;
+    --chat-type)
+      CHAT_EVENT_TYPE="$2"; shift 2;;
+    --user-id)
+      USER_ID="$2"; shift 2;;
+    --interactive|-i)
+      INTERACTIVE="true"; shift;;
     -h|--help)
       usage; exit 0;;
     *)
@@ -67,15 +90,59 @@ if [[ ! -f "$CONFIG_PROD" ]]; then
   curl -fsSL "$REPO_RAW_BASE/configs/config.example.yaml" -o "$CONFIG_PROD"
 fi
 
+# Helper: prompt from /dev/tty even when stdin is piped
+prompt() {
+  local message="$1" default="$2" var
+  if [[ -t 0 ]]; then
+    read -r -p "$message [$default]: " var
+  else
+    if [[ -e /dev/tty ]]; then
+      read -r -p "$message [$default]: " var < /dev/tty
+    else
+      var=""
+    fi
+  fi
+  echo "${var:-$default}"
+}
+
+write_config() {
+  local path="$1"
+  local server_host="0.0.0.0" server_port="8080"
+  cat > "$path" <<'YAML'
+server:
+  host: "__SERVER_HOST__"
+  port: "__SERVER_PORT__"
+pcas:
+  address: "__PCAS_ADDRESS__"
+  eventType: "__EVENT_TYPE__"
+  translateEventType: "__TRANSLATE_TYPE__"
+  summarizeEventType: "__SUMMARIZE_TYPE__"
+  chatEventType: "__CHAT_TYPE__"
+user:
+  id: "__USER_ID__"
+YAML
+  sed -i.bak \
+    -e "s|__SERVER_HOST__|${server_host}|" \
+    -e "s|__SERVER_PORT__|${server_port}|" \
+    -e "s|__PCAS_ADDRESS__|${PCAS_ADDRESS}|" \
+    -e "s|__EVENT_TYPE__|${EVENT_TYPE:-capability.streaming.transcribe.v1}|" \
+    -e "s|__TRANSLATE_TYPE__|${TRANSLATE_EVENT_TYPE:-capability.streaming.translate.v1}|" \
+    -e "s|__SUMMARIZE_TYPE__|${SUMMARIZE_EVENT_TYPE:-capability.streaming.summarize.v1}|" \
+    -e "s|__CHAT_TYPE__|${CHAT_EVENT_TYPE:-capability.streaming.chat.v1}|" \
+    -e "s|__USER_ID__|${USER_ID}|" "$path" || true
+}
+
 patch_yaml_value() {
   local key="$1" value="$2" file="$3"
   if command -v yq >/dev/null 2>&1; then
     tmp=$(mktemp)
     yq e ".$key = \"$value\"" "$file" > "$tmp" && mv "$tmp" "$file"
   else
-    # sed fallback for simple key: value pairs under pcas:
-    # Assumes lines like: key: "..."
-    sed -i.bak -E "s|(${key}: \").*(\")|\\1${value}\\2|" "$file" || true
+    # sed fallback: replace by leaf key under assumption of unique keys in file
+    # Works for lines like:   address: "..."
+    local leaf
+    leaf="${key##*.}"
+    sed -i.bak -E "s|(^[[:space:]]*${leaf}:[[:space:]]\").*(\")|\\1${value}\\2|" "$file" || true
   fi
 }
 
@@ -91,6 +158,44 @@ fi
 if [[ -n "$EVENT_TYPE" ]]; then
   echo "Setting pcas.eventType=$EVENT_TYPE"
   patch_yaml_value "pcas.eventType" "$EVENT_TYPE" "$CONFIG_PROD"
+fi
+
+# Optional capability-specific overrides
+if [[ -n "$TRANSLATE_EVENT_TYPE" ]]; then
+  echo "Setting pcas.translateEventType=$TRANSLATE_EVENT_TYPE"
+  patch_yaml_value "pcas.translateEventType" "$TRANSLATE_EVENT_TYPE" "$CONFIG_PROD"
+fi
+if [[ -n "$SUMMARIZE_EVENT_TYPE" ]]; then
+  echo "Setting pcas.summarizeEventType=$SUMMARIZE_EVENT_TYPE"
+  patch_yaml_value "pcas.summarizeEventType" "$SUMMARIZE_EVENT_TYPE" "$CONFIG_PROD"
+fi
+if [[ -n "$CHAT_EVENT_TYPE" ]]; then
+  echo "Setting pcas.chatEventType=$CHAT_EVENT_TYPE"
+  patch_yaml_value "pcas.chatEventType" "$CHAT_EVENT_TYPE" "$CONFIG_PROD"
+fi
+
+# Interactive wizard to generate/update config if requested
+if [[ "$INTERACTIVE" == "true" ]]; then
+  echo "Running interactive configuration wizard..."
+  # Propose defaults
+  local_default_pcas="${PCAS_ADDRESS:-localhost:50051}"
+  local_default_event="${EVENT_TYPE:-capability.streaming.transcribe.v1}"
+  local_default_tr="${TRANSLATE_EVENT_TYPE:-capability.streaming.translate.v1}"
+  local_default_sm="${SUMMARIZE_EVENT_TYPE:-capability.streaming.summarize.v1}"
+  local_default_ch="${CHAT_EVENT_TYPE:-capability.streaming.chat.v1}"
+  local_default_uid="${USER_ID:-default-user}"
+  local_default_port="${HTTP_PORT:-8080}"
+
+  PCAS_ADDRESS=$(prompt "PCAS address (host:port)" "$local_default_pcas")
+  EVENT_TYPE=$(prompt "Transcribe eventType" "$local_default_event")
+  TRANSLATE_EVENT_TYPE=$(prompt "Translate eventType" "$local_default_tr")
+  SUMMARIZE_EVENT_TYPE=$(prompt "Summarize eventType" "$local_default_sm")
+  CHAT_EVENT_TYPE=$(prompt "Chat eventType" "$local_default_ch")
+  USER_ID=$(prompt "User ID" "$local_default_uid")
+  HTTP_PORT=$(prompt "Host HTTP port to expose" "$local_default_port")
+
+  echo "\nWriting config to $CONFIG_PROD ..."
+  write_config "$CONFIG_PROD"
 fi
 
 echo "Pulling latest image and starting containers..."
