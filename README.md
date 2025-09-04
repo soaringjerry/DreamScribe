@@ -106,21 +106,38 @@ Options:
 - `--port` or `-Port`: host port to expose (default 8080)
 - `--pcas` / `-PCASAddress`: override `pcas.address`
 - `--event-type` / `-EventType`: override `pcas.eventType`
- - `--translate-type` / `-TranslateType`: override `pcas.translateEventType`
- - `--summarize-type` / `-SummarizeType`: override `pcas.summarizeEventType`
- - `--chat-type` / `-ChatType`: override `pcas.chatEventType`
- - `--user-id` / `-UserId`: set `user.id`
- - `--admin-token` / `-AdminToken`: export `PCAS_ADMIN_TOKEN` into container
+- `--translate-type` / `-TranslateType`: override `pcas.translateEventType`
+- `--summarize-type` / `-SummarizeType`: override `pcas.summarizeEventType`
+- `--chat-type` / `-ChatType`: override `pcas.chatEventType`
+- `--user-id` / `-UserId`: set `user.id`
+- `--admin-token` / `-AdminToken`: export `PCAS_ADMIN_TOKEN` into container
+ - `--interactive` / `-Interactive`: interactive wizard (only modifies config on first run or if you choose to)
 
 What the script does:
 - Downloads latest `docker-compose.yml` (+dev overlay) from GitHub
 - Ensures `configs/config.production.yaml` exists (created from example if missing)
 - Applies overrides if provided, then runs `docker compose pull && up -d`
- - If `--interactive` is used, guides you through config generation
+- If `--interactive` is used, guides you through config generation
 
 Diagnostics:
 - Open `http://<host>:<port>/test` for a built-in test console (WS/SSE/Chat/Admin)
 - Check `GET /api/health` for PCAS readiness (per capability)
+
+## Backend API (Quick Reference)
+
+- Transcribe (audio WS): `GET /ws/transcribe` — send binary PCM frames, receive text frames.
+- Translate (SSE):
+  - `POST /api/translate/start` → `{ streamId }`
+  - `GET /api/translate/stream?streamId=...` — SSE: `data: {"text":"..."}`
+  - `POST /api/streams/{id}/send` with `{ text }`; `DELETE /api/streams/{id}` to close
+- Summarize (SSE): same pattern as Translate via `/api/summarize/*`
+- Chat (SSE one-shot): `POST /api/chat` with `{ sessionId, message, refs?, attrs? }`
+- Health: `GET /api/health`
+- Test console: `GET /test`
+
+Notes:
+- AudioWorklet requires HTTPS or localhost for recording in browsers.
+- SSE is server→client text streaming over HTTP; use POSTs to push inputs.
 
 CI status:
 - Build & push to GHCR: `.github/workflows/docker-build.yml` (keep as-is)

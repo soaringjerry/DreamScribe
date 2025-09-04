@@ -32,10 +32,9 @@ func (h *Handler) handleAdminAddRule(c *gin.Context) {
     defer gw.Close()
 
     adminToken := h.config.PCAS.AdminToken
-    if err := gw.publisher.PublishAdminPolicyAddRule(c.Request.Context(), adminToken, req.EventType, req.Provider, req.PromptTemplate, req.Name); err != nil {
+    if err := gw.PublishAdminPolicyAddRule(c.Request.Context(), adminToken, req.EventType, req.Provider, req.PromptTemplate, req.Name); err != nil {
         c.JSON(http.StatusBadGateway, gin.H{"error": gin.H{"message": err.Error()}})
         return
     }
     c.JSON(http.StatusOK, gin.H{"ok": true})
 }
-

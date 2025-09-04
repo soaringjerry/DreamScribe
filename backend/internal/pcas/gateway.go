@@ -186,6 +186,11 @@ func (g *Gateway) CheckReady(ctx context.Context, eventType string, attributes m
     return nil
 }
 
+// PublishAdminPolicyAddRule proxies to the internal publisher to emit the admin rule event.
+func (g *Gateway) PublishAdminPolicyAddRule(ctx context.Context, adminToken, eventType, provider, promptTemplate, name string) error {
+    return g.publisher.PublishAdminPolicyAddRule(ctx, adminToken, eventType, provider, promptTemplate, name)
+}
+
 // StartGenericStream launches a generic interact stream with PCAS and bridges bytes
 // from 'in' to PCAS and from PCAS to 'out'. It does not perform distillation or publishing.
 func (g *Gateway) StartGenericStream(ctx context.Context, eventType string, attributes map[string]string, in <-chan []byte, out chan<- []byte) error {

@@ -24,7 +24,7 @@ const getExplicitBase = (): string | undefined => {
   try {
     const url = new URL(window.location.href);
     wsParam = url.searchParams.get('ws');
-  } catch (e) {
+  } catch {
     // ignore invalid URL parsing in unusual environments
   }
   if (wsParam && /^wss?:\/\//i.test(wsParam)) return wsParam.trim();
