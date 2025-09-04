@@ -68,6 +68,7 @@ func (h *Handler) registerCapabilities(router *gin.Engine) {
     router.GET("/api/summarize/stream", ch.streamSSE)
 
     router.POST("/api/streams/:id/send", ch.sendToStream)
+    router.POST("/api/streams/:id/commit", ch.commitStream)
     router.DELETE("/api/streams/:id", ch.closeStream)
 
     // Chat: one-shot stream, stream response in this request via SSE
