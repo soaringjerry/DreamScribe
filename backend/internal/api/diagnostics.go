@@ -98,7 +98,9 @@ func (h *Handler) handleTestPage(c *gin.Context) {
     <h2>Translate SSE</h2>
     <div class="row">
       <input id="trLang" value="en" />
+      <input id="trAttrs" placeholder='Attrs JSON (e.g. {"model":"gpt-5"})' style="flex:1" />
       <button id="trStart">Start</button>
+      <button id="trCommit" disabled>Commit</button>
       <button id="trStop" disabled>Stop</button>
     </div>
     <div class="row">
@@ -111,7 +113,9 @@ func (h *Handler) handleTestPage(c *gin.Context) {
     <h2>Summarize SSE</h2>
     <div class="row">
       <select id="smMode"><option value="rolling">rolling</option><option value="final">final</option></select>
+      <input id="smAttrs" placeholder='Attrs JSON (e.g. {"model":"gpt-5"})' style="flex:1" />
       <button id="smStart">Start</button>
+      <button id="smCommit" disabled>Commit</button>
       <button id="smStop" disabled>Stop</button>
     </div>
     <div class="row">
@@ -124,6 +128,7 @@ func (h *Handler) handleTestPage(c *gin.Context) {
     <h2>Chat (one-shot SSE)</h2>
     <div class="row">
       <input id="chatText" placeholder="message" style="flex:1" />
+      <input id="chatAttrs" placeholder='Attrs JSON (e.g. {"model":"gpt-5","system":"..."})' style="flex:1" />
       <button id="chatSend">Send</button>
     </div>
     <pre id="chatLog"></pre>
@@ -178,12 +183,18 @@ func (h *Handler) handleTestPage(c *gin.Context) {
       trLog.textContent='';
       try {
         const lang = document.getElementById('trLang').value || 'en';
-        const r = await getJSON('/api/translate/start', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sessionId:'test', targetLang:lang})});
+        const attrsRaw = document.getElementById('trAttrs').value;
+        let attrs = {}; try { if (attrsRaw) attrs = JSON.parse(attrsRaw) } catch(e){}
+        const r = await getJSON('/api/translate/start', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sessionId:'test', targetLang:lang, attrs})});
         trId = r.streamId; trES = new EventSource('/api/translate/stream?streamId='+encodeURIComponent(trId));
         trES.onmessage = (ev)=> log(trLog, 'data:', ev.data);
         trES.onerror = (e)=> log(trLog, 'error');
-        trSendBtn.disabled = false; trStopBtn.disabled=false;
+        trSendBtn.disabled = false; trStopBtn.disabled=false; document.getElementById('trCommit').disabled=false;
       } catch(e){ log(trLog, 'ERR', e.message); }
+    };
+    document.getElementById('trCommit').onclick = async () => {
+      if (!trId) return;
+      try { await getJSON('/api/streams/'+trId+'/commit', {method:'POST'}); } catch(e){ log(trLog,'ERR', e.message); }
     };
     trStopBtn.onclick = async () => { try{ trES && trES.close(); }catch{} trSendBtn.disabled=true; trStopBtn.disabled=true; };
     trSendBtn.onclick = async () => {
@@ -201,12 +212,18 @@ func (h *Handler) handleTestPage(c *gin.Context) {
       smLog.textContent='';
       try {
         const mode = document.getElementById('smMode').value || 'rolling';
-        const r = await getJSON('/api/summarize/start', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sessionId:'test', mode:mode})});
+        const attrsRaw = document.getElementById('smAttrs').value;
+        let attrs = {}; try { if (attrsRaw) attrs = JSON.parse(attrsRaw) } catch(e){}
+        const r = await getJSON('/api/summarize/start', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sessionId:'test', mode:mode, attrs})});
         smId = r.streamId; smES = new EventSource('/api/summarize/stream?streamId='+encodeURIComponent(smId));
         smES.onmessage = (ev)=> log(smLog, 'data:', ev.data);
         smES.onerror = (e)=> log(smLog, 'error');
-        smSendBtn.disabled = false; smStopBtn.disabled=false;
+        smSendBtn.disabled = false; smStopBtn.disabled=false; document.getElementById('smCommit').disabled=false;
       } catch(e){ log(smLog, 'ERR', e.message); }
+    };
+    document.getElementById('smCommit').onclick = async () => {
+      if (!smId) return;
+      try { await getJSON('/api/streams/'+smId+'/commit', {method:'POST'}); } catch(e){ log(smLog,'ERR', e.message); }
     };
     smStopBtn.onclick = async () => { try{ smES && smES.close(); }catch{} smSendBtn.disabled=true; smStopBtn.disabled=true; };
     smSendBtn.onclick = async () => {
@@ -219,7 +236,9 @@ func (h *Handler) handleTestPage(c *gin.Context) {
     document.getElementById('chatSend').onclick = async () => {
       const el = document.getElementById('chatLog'); el.textContent='';
       const msg = document.getElementById('chatText').value; if(!msg) return;
-      const r = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sessionId:'test', message: msg})});
+      const attrsRaw = document.getElementById('chatAttrs').value;
+      let attrs = {}; try { if (attrsRaw) attrs = JSON.parse(attrsRaw) } catch(e){}
+      const r = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sessionId:'test', message: msg, attrs})});
       const reader = r.body.getReader(); const dec = new TextDecoder(); let buf='';
       while(true){ const {done, value} = await reader.read(); if(done) break; buf += dec.decode(value,{stream:true}); el.textContent = buf; }
     };

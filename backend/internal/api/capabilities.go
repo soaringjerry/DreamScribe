@@ -3,7 +3,6 @@ package api
 import (
     "context"
     "encoding/json"
-    "fmt"
     "log"
     "net/http"
     "sync"
@@ -92,7 +91,8 @@ func (ch *capabilityHandler) startTranslate(c *gin.Context) {
         c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{"message": "invalid request"}})
         return
     }
-    attrs := map[string]string{"target_lang": req.TargetLang, "content_type": "application/json"}
+    attrs := map[string]string{}
+    if req.TargetLang != "" { attrs["target_lang"] = req.TargetLang }
     for k, v := range req.Attrs { attrs[k] = v }
     ch.startGeneric(c, ch.cfg.PCAS.TranslateEventType, attrs)
 }
@@ -103,7 +103,8 @@ func (ch *capabilityHandler) startSummarize(c *gin.Context) {
         c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{"message": "invalid request"}})
         return
     }
-    attrs := map[string]string{"mode": req.Mode, "content_type": "application/json"}
+    attrs := map[string]string{}
+    if req.Mode != "" { attrs["mode"] = req.Mode }
     for k, v := range req.Attrs { attrs[k] = v }
     ch.startGeneric(c, ch.cfg.PCAS.SummarizeEventType, attrs)
 }
@@ -184,18 +185,26 @@ func (ch *capabilityHandler) sendToStream(c *gin.Context) {
         c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{"message": "invalid text"}})
         return
     }
-    // If not JSON, wrap as {"text": "..."} to satisfy providers expecting JSON payload
-    payload := req.Text
-    trimmed := strings.TrimSpace(req.Text)
-    if !(strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[")) {
-        payload = fmt.Sprintf(`{"text": %q}`, req.Text)
-    }
     select {
-    case s.in <- []byte(payload):
+    case s.in <- []byte(req.Text):
         c.JSON(http.StatusOK, gin.H{"ok": true})
     default:
         c.JSON(http.StatusTooManyRequests, gin.H{"error": gin.H{"message": "backpressure"}})
     }
+}
+
+// commitStream: close input channel to signal ClientEnd but keep stream alive to receive results
+func (ch *capabilityHandler) commitStream(c *gin.Context) {
+    id := c.Param("id")
+    s, ok := ch.sm.get(id)
+    if !ok {
+        c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"message": "stream not found"}})
+        return
+    }
+    // idempotent close
+    defer func() { recover() }()
+    close(s.in)
+    c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func (ch *capabilityHandler) closeStream(c *gin.Context) {
@@ -255,10 +264,8 @@ func (ch *capabilityHandler) chatOnce(c *gin.Context) {
         }
     }()
 
-    // send user message as JSON then close input (include both message and text for compatibility)
-    msgObj := map[string]any{"message": req.Message, "text": req.Message}
-    mb, _ := json.Marshal(msgObj)
-    in <- mb
+    // send raw message bytes then close input (provider aggregates raw prompt and starts after ClientEnd)
+    in <- []byte(req.Message)
     close(in)
 
     notify := c.Request.Context().Done()
