@@ -65,20 +65,30 @@ user:
 }
 
 if ($Interactive) {
-  Write-Host 'Running interactive configuration wizard...' -ForegroundColor Cyan
-  if (-not $PCASAddress) { $PCASAddress = Read-Host 'PCAS address (host:port) [localhost:50051]' ; if (-not $PCASAddress) { $PCASAddress = 'localhost:50051' } }
-  if (-not $EventType) { $EventType = Read-Host 'Transcribe eventType [capability.streaming.transcribe.v1]' ; if (-not $EventType) { $EventType = 'capability.streaming.transcribe.v1' } }
-  if (-not $TranslateType) { $TranslateType = Read-Host 'Translate eventType [capability.streaming.translate.v1]' ; if (-not $TranslateType) { $TranslateType = 'capability.streaming.translate.v1' } }
-  if (-not $SummarizeType) { $SummarizeType = Read-Host 'Summarize eventType [capability.streaming.summarize.v1]' ; if (-not $SummarizeType) { $SummarizeType = 'capability.streaming.summarize.v1' } }
-  if (-not $ChatType) { $ChatType = Read-Host 'Chat eventType [capability.streaming.chat.v1]' ; if (-not $ChatType) { $ChatType = 'capability.streaming.chat.v1' } }
-  $uidIn = Read-Host ("User ID [{0}]" -f $UserId)
-  if ($uidIn) { $UserId = $uidIn }
-  $portIn = Read-Host ("Host HTTP port to expose [{0}]" -f $Port)
-  if ($portIn) { $Port = [int]$portIn }
-  $admIn = Read-Host ("PCAS admin token (optional) [{0}]" -f $AdminToken)
-  if ($admIn) { $AdminToken = $admIn }
-  Write-Host ('Writing config to {0} ...' -f $Config) -ForegroundColor Yellow
-  Write-ConfigYaml -Path $Config -Addr $PCASAddress -ET $EventType -TrET $TranslateType -SmET $SummarizeType -ChET $ChatType -Uid $UserId
+  $modify = 'N'
+  if (Test-Path $Config) {
+    $modify = Read-Host "Detected existing config at $Config. Modify it? (y/N)"
+  } else {
+    $modify = 'Y'
+  }
+  if ($modify -match '^[Yy]') {
+    Write-Host 'Running interactive configuration wizard...' -ForegroundColor Cyan
+    if (-not $PCASAddress) { $PCASAddress = Read-Host 'PCAS address (host:port) [localhost:50051]' ; if (-not $PCASAddress) { $PCASAddress = 'localhost:50051' } }
+    if (-not $EventType) { $EventType = Read-Host 'Transcribe eventType [capability.streaming.transcribe.v1]' ; if (-not $EventType) { $EventType = 'capability.streaming.transcribe.v1' } }
+    if (-not $TranslateType) { $TranslateType = Read-Host 'Translate eventType [capability.streaming.translate.v1]' ; if (-not $TranslateType) { $TranslateType = 'capability.streaming.translate.v1' } }
+    if (-not $SummarizeType) { $SummarizeType = Read-Host 'Summarize eventType [capability.streaming.summarize.v1]' ; if (-not $SummarizeType) { $SummarizeType = 'capability.streaming.summarize.v1' } }
+    if (-not $ChatType) { $ChatType = Read-Host 'Chat eventType [capability.streaming.chat.v1]' ; if (-not $ChatType) { $ChatType = 'capability.streaming.chat.v1' } }
+    $uidIn = Read-Host ("User ID [{0}]" -f $UserId)
+    if ($uidIn) { $UserId = $uidIn }
+    $portIn = Read-Host ("Host HTTP port to expose [{0}]" -f $Port)
+    if ($portIn) { $Port = [int]$portIn }
+    $admIn = Read-Host ("PCAS admin token (optional) [{0}]" -f $AdminToken)
+    if ($admIn) { $AdminToken = $admIn }
+    Write-Host ('Writing config to {0} ...' -f $Config) -ForegroundColor Yellow
+    Write-ConfigYaml -Path $Config -Addr $PCASAddress -ET $EventType -TrET $TranslateType -SmET $SummarizeType -ChET $ChatType -Uid $UserId
+  } else {
+    Write-Host ("Keeping existing configuration file: {0}" -f $Config) -ForegroundColor Cyan
+  }
 }
 
 if ($PCASAddress) {
@@ -112,9 +122,14 @@ if ($UserId) {
 
 Push-Location $Dir
 # Write .env for compose variable substitution
-"HTTP_PORT=$Port" | Set-Content -Path (Join-Path $Dir '.env') -Encoding UTF8
-if ($AdminToken) {
-  Add-Content -Path (Join-Path $Dir '.env') -Value "PCAS_ADMIN_TOKEN=$AdminToken"
+$envFile = (Join-Path $Dir '.env')
+if ($Interactive -and (Test-Path $envFile) -and -not $PSBoundParameters.ContainsKey('Port') -and -not $PSBoundParameters.ContainsKey('AdminToken')) {
+  Write-Host 'Preserving existing .env' -ForegroundColor Cyan
+} else {
+  "HTTP_PORT=$Port" | Set-Content -Path $envFile -Encoding UTF8
+  if ($AdminToken) {
+    Add-Content -Path $envFile -Value "PCAS_ADMIN_TOKEN=$AdminToken"
+  }
 }
 if ($Dev -and (Test-Path (Join-Path $Dir 'docker-compose.dev.yml'))) {
   docker compose -f docker-compose.yml -f docker-compose.dev.yml pull

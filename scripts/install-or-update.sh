@@ -12,6 +12,7 @@ REPO_RAW_BASE="https://raw.githubusercontent.com/soaringjerry/DreamScribe/main"
 INSTALL_DIR="${INSTALL_DIR:-/opt/dreamscribe}"
 DEV="false"
 HTTP_PORT="${HTTP_PORT:-8080}"
+HTTP_PORT_SET="false"
 PCAS_ADDRESS="${PCAS_ADDRESS:-}"
 EVENT_TYPE="${EVENT_TYPE:-}"
 # Optional capability-specific event types (fallback to defaults in config if empty)
@@ -56,7 +57,7 @@ while [[ $# -gt 0 ]]; do
     --dev)
       DEV="true"; shift;;
     --port)
-      HTTP_PORT="$2"; shift 2;;
+      HTTP_PORT="$2"; HTTP_PORT_SET="true"; shift 2;;
     --pcas)
       PCAS_ADDRESS="$2"; shift 2;;
     --event-type)
@@ -149,6 +150,7 @@ patch_yaml_value() {
   fi
 }
 
+# Optional non-interactive overrides (safe to skip if not provided)
 if [[ -n "$PCAS_ADDRESS" ]]; then
   if [[ "$PCAS_ADDRESS" != *:* ]]; then
     echo "Warning: --pcas provided without port. Defaulting to :50051" >&2
@@ -179,39 +181,55 @@ fi
 
 # Interactive wizard to generate/update config if requested
 if [[ "$INTERACTIVE" == "true" ]]; then
-  echo "Running interactive configuration wizard..."
-  # Propose defaults
-  local_default_pcas="${PCAS_ADDRESS:-localhost:50051}"
-  local_default_event="${EVENT_TYPE:-capability.streaming.transcribe.v1}"
-  local_default_tr="${TRANSLATE_EVENT_TYPE:-capability.streaming.translate.v1}"
-  local_default_sm="${SUMMARIZE_EVENT_TYPE:-capability.streaming.summarize.v1}"
-  local_default_ch="${CHAT_EVENT_TYPE:-capability.streaming.chat.v1}"
-  local_default_uid="${USER_ID:-default-user}"
-  local_default_port="${HTTP_PORT:-8080}"
-  local_default_admin="${PCAS_ADMIN_TOKEN:-}"
+  # If config already exists, ask whether to modify it; default: keep as-is
+  if [[ -f "$CONFIG_PROD" && -s "$CONFIG_PROD" ]]; then
+    keep=$(prompt "Detected existing config at $CONFIG_PROD. Keep as-is? (Y/n)" "Y")
+  else
+    keep="n"
+  fi
 
-  PCAS_ADDRESS=$(prompt "PCAS address (host:port)" "$local_default_pcas")
-  EVENT_TYPE=$(prompt "Transcribe eventType" "$local_default_event")
-  TRANSLATE_EVENT_TYPE=$(prompt "Translate eventType" "$local_default_tr")
-  SUMMARIZE_EVENT_TYPE=$(prompt "Summarize eventType" "$local_default_sm")
-  CHAT_EVENT_TYPE=$(prompt "Chat eventType" "$local_default_ch")
-  USER_ID=$(prompt "User ID" "$local_default_uid")
-  HTTP_PORT=$(prompt "Host HTTP port to expose" "$local_default_port")
-  PCAS_ADMIN_TOKEN=$(prompt "PCAS admin token (optional)" "$local_default_admin")
+  if [[ ! "$keep" =~ ^[Yy]$ ]]; then
+    echo "Running interactive configuration wizard..."
+    # Propose defaults from current values (best-effort)
+    local_default_pcas="${PCAS_ADDRESS:-localhost:50051}"
+    local_default_event="${EVENT_TYPE:-capability.streaming.transcribe.v1}"
+    local_default_tr="${TRANSLATE_EVENT_TYPE:-capability.streaming.translate.v1}"
+    local_default_sm="${SUMMARIZE_EVENT_TYPE:-capability.streaming.summarize.v1}"
+    local_default_ch="${CHAT_EVENT_TYPE:-capability.streaming.chat.v1}"
+    local_default_uid="${USER_ID:-default-user}"
+    local_default_port="${HTTP_PORT:-8080}"
+    local_default_admin="${PCAS_ADMIN_TOKEN:-}"
 
-  echo "\nWriting config to $CONFIG_PROD ..."
-  write_config "$CONFIG_PROD"
+    PCAS_ADDRESS=$(prompt "PCAS address (host:port)" "$local_default_pcas")
+    EVENT_TYPE=$(prompt "Transcribe eventType" "$local_default_event")
+    TRANSLATE_EVENT_TYPE=$(prompt "Translate eventType" "$local_default_tr")
+    SUMMARIZE_EVENT_TYPE=$(prompt "Summarize eventType" "$local_default_sm")
+    CHAT_EVENT_TYPE=$(prompt "Chat eventType" "$local_default_ch")
+    USER_ID=$(prompt "User ID" "$local_default_uid")
+    HTTP_PORT=$(prompt "Host HTTP port to expose" "$local_default_port")
+    PCAS_ADMIN_TOKEN=$(prompt "PCAS admin token (optional)" "$local_default_admin")
+
+    echo "\nWriting config to $CONFIG_PROD ..."
+    write_config "$CONFIG_PROD"
+  else
+    echo "Keeping existing configuration file: $CONFIG_PROD"
+  fi
 fi
 
 echo "Pulling latest image and starting containers..."
 pushd "$INSTALL_DIR" >/dev/null
-# Write .env for compose variable substitution
-{
-  echo "HTTP_PORT=$HTTP_PORT"
-  if [[ -n "${PCAS_ADMIN_TOKEN:-}" ]]; then
-    echo "PCAS_ADMIN_TOKEN=$PCAS_ADMIN_TOKEN"
-  fi
-} > .env
+# Write .env for compose variable substitution.
+# Preserve existing .env if present and not explicitly changing values.
+if [[ -f .env && "$INTERACTIVE" == "true" && -z "${PCAS_ADMIN_TOKEN:-}" && "$HTTP_PORT_SET" != "true" ]]; then
+  echo "Preserving existing .env"
+else
+  {
+    echo "HTTP_PORT=$HTTP_PORT"
+    if [[ -n "${PCAS_ADMIN_TOKEN:-}" ]]; then
+      echo "PCAS_ADMIN_TOKEN=$PCAS_ADMIN_TOKEN"
+    fi
+  } > .env
+fi
 if [[ "$DEV" == "true" && -f "docker-compose.dev.yml" ]]; then
   docker compose -f docker-compose.yml -f docker-compose.dev.yml pull
   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
