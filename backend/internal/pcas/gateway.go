@@ -162,6 +162,30 @@ func (g *Gateway) ProcessStream(ctx context.Context, eventType string, audioFrom
 	}
 }
 
+// CheckReady dials InteractStream, sends a StreamConfig for the given event type,
+// and waits for a Ready response. Returns error on failure.
+func (g *Gateway) CheckReady(ctx context.Context, eventType string, attributes map[string]string) error {
+    stream, err := g.client.InteractStream(ctx)
+    if err != nil {
+        return fmt.Errorf("failed to create interact stream: %w", err)
+    }
+    cfg := &busv1.InteractRequest{
+        RequestType: &busv1.InteractRequest_Config{
+            Config: &busv1.StreamConfig{
+                EventType: eventType,
+                Attributes: attributes,
+            },
+        },
+    }
+    if err := stream.Send(cfg); err != nil {
+        return fmt.Errorf("failed to send config: %w", err)
+    }
+    if _, err := stream.Recv(); err != nil {
+        return fmt.Errorf("failed to receive ready: %w", err)
+    }
+    return nil
+}
+
 // StartGenericStream launches a generic interact stream with PCAS and bridges bytes
 // from 'in' to PCAS and from PCAS to 'out'. It does not perform distillation or publishing.
 func (g *Gateway) StartGenericStream(ctx context.Context, eventType string, attributes map[string]string, in <-chan []byte, out chan<- []byte) error {

@@ -27,6 +27,8 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
     router.GET("/ws/transcribe", h.HandleTranscription)
     // API routes for capability streams (translate/summarize/chat)
     h.registerCapabilities(router)
+    // Diagnostics and test utilities (/test page + /api/health)
+    h.registerDiagnostics(router)
 }
 
 func (h *Handler) HandleTranscription(c *gin.Context) {
