@@ -101,17 +101,18 @@ func (h *Handler) handleTestPage(c *gin.Context) {
     <pre id="wsLog"></pre>
   </div>
   <div class="card">
-    <h2>Translate SSE</h2>
+    <h2>Translate (Live)</h2>
     <div class="row">
       <input id="trLang" value="en" />
-      <input id="trAttrs" placeholder='Attrs JSON (e.g. {"model":"gpt-5"})' style="flex:1" />
-      <button id="trStart">Start</button>
-      <button id="trCommit" disabled>Commit</button>
-      <button id="trStop" disabled>Stop</button>
+      <input id="trAttrs" placeholder='Options (JSON, 可选)' style="flex:1" />
+      <button id="trStart" title="Begin live session">Begin</button>
+      <button id="trCommit" disabled title="Finish input and run">Finish</button>
+      <button id="trStop" disabled title="Close viewer">Close</button>
     </div>
     <div class="row">
-      <input id="trText" placeholder="text to send" style="flex:1" />
-      <button id="trSend" disabled>Send</button>
+      <input id="trText" placeholder="append text" style="flex:1" />
+      <button id="trSend" disabled title="Append text">Append</button>
+      <button id="trSendFinish" disabled title="Append then Finish">Append+Finish</button>
     </div>
     <pre id="trLog"></pre>
   </div>
@@ -126,17 +127,18 @@ func (h *Handler) handleTestPage(c *gin.Context) {
     <pre id="tr1Log"></pre>
   </div>
   <div class="card">
-    <h2>Summarize SSE</h2>
+    <h2>Summarize (Live)</h2>
     <div class="row">
       <select id="smMode"><option value="rolling">rolling</option><option value="final">final</option></select>
-      <input id="smAttrs" placeholder='Attrs JSON (e.g. {"model":"gpt-5"})' style="flex:1" />
-      <button id="smStart">Start</button>
-      <button id="smCommit" disabled>Commit</button>
-      <button id="smStop" disabled>Stop</button>
+      <input id="smAttrs" placeholder='Options (JSON, 可选)' style="flex:1" />
+      <button id="smStart" title="Begin live session">Begin</button>
+      <button id="smCommit" disabled title="Finish input and run">Finish</button>
+      <button id="smStop" disabled title="Close viewer">Close</button>
     </div>
     <div class="row">
-      <input id="smText" placeholder="text to send" style="flex:1" />
-      <button id="smSend" disabled>Send</button>
+      <input id="smText" placeholder="append text" style="flex:1" />
+      <button id="smSend" disabled title="Append text">Append</button>
+      <button id="smSendFinish" disabled title="Append then Finish">Append+Finish</button>
     </div>
     <pre id="smLog"></pre>
   </div>
@@ -151,10 +153,10 @@ func (h *Handler) handleTestPage(c *gin.Context) {
     <pre id="sm1Log"></pre>
   </div>
   <div class="card">
-    <h2>Chat (one-shot SSE)</h2>
+    <h2>Chat</h2>
     <div class="row">
       <input id="chatText" placeholder="message" style="flex:1" />
-      <input id="chatAttrs" placeholder='Attrs JSON (e.g. {"model":"gpt-5","system":"..."})' style="flex:1" />
+      <input id="chatAttrs" placeholder='Options (JSON, 可选)' style="flex:1" />
       <button id="chatSend">Send</button>
     </div>
     <pre id="chatLog"></pre>
@@ -238,6 +240,13 @@ func (h *Handler) handleTestPage(c *gin.Context) {
       try{ await getJSON('/api/streams/'+trId+'/send', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text:txt})}); }
       catch(e){ log(trLog, 'ERR', e.message); }
     };
+    document.getElementById('trSendFinish').onclick = async () => {
+      const txt = document.getElementById('trText').value; if(!trId||!txt) return;
+      try{
+        await getJSON('/api/streams/'+trId+'/send', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text:txt})});
+        await getJSON('/api/streams/'+trId+'/commit', {method:'POST'});
+      } catch(e){ log(trLog, 'ERR', e.message); }
+    };
 
     // Summarize SSE
     let smId = null, smES = null;
@@ -266,6 +275,13 @@ func (h *Handler) handleTestPage(c *gin.Context) {
       const txt = document.getElementById('smText').value; if(!smId||!txt) return;
       try{ await getJSON('/api/streams/'+smId+'/send', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text:txt})}); }
       catch(e){ log(smLog, 'ERR', e.message); }
+    };
+    document.getElementById('smSendFinish').onclick = async () => {
+      const txt = document.getElementById('smText').value; if(!smId||!txt) return;
+      try{
+        await getJSON('/api/streams/'+smId+'/send', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text:txt})});
+        await getJSON('/api/streams/'+smId+'/commit', {method:'POST'});
+      } catch(e){ log(smLog, 'ERR', e.message); }
     };
 
     // Chat
