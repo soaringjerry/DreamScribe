@@ -14,6 +14,16 @@ export function ChatPanel() {
   const send = async () => {
     const text = input.trim();
     if (!text || sending) return;
+
+    // Build a lightweight rolling context from recent turns
+    const MAX_TURNS = 6; // include recent messages
+    const recents = messages
+      .filter((m) => m.role === 'user' || m.role === 'ai')
+      .slice(-MAX_TURNS);
+    const contextText = recents
+      .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+      .join('\n');
+
     const user: Msg = { id: `u-${Date.now()}`, role: 'user', content: text };
     const ai: Msg = { id: `a-${Date.now()}`, role: 'ai', content: '', typing: true };
     setMessages((m) => [...m, user, ai]);
@@ -26,15 +36,24 @@ export function ChatPanel() {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId: 'current_session', message: text, attrs: { model: 'gpt-5', system: 'You are a helpful assistant.' } }),
+          body: JSON.stringify({
+            sessionId: 'current_session',
+            // Preface prior turns as plain-text context before the new input
+            message: contextText ? `Context\n${contextText}\n\nUser: ${text}` : text,
+            attrs: {
+              model: 'gpt-5',
+              system:
+                'You are a helpful assistant. Use the provided Context (if any) to answer concisely.',
+              // Also provide context via attrs for providers that read attributes
+              context: contextText || '',
+            },
+          }),
         },
         (t) => {
-          // first chunk: turn off typing
-          setMessages((m) => m.map((msg) => (
-            msg.id === ai.id
-              ? { ...msg, typing: false, content: msg.content + t }
-              : msg
-          )));
+          // first chunk: turn off typing and append
+          setMessages((m) =>
+            m.map((msg) => (msg.id === ai.id ? { ...msg, typing: false, content: msg.content + t } : msg)),
+          );
         },
       );
     } catch (e) {
@@ -54,7 +73,11 @@ export function ChatPanel() {
           <div key={m.id} className={`chat-item chat-${m.role}`}>
             <div className={`chat-bubble${m.typing ? ' typing' : ''}`}>
               {m.typing ? (
-                <span className="typing-dots"><span></span><span></span><span></span></span>
+                <span className="typing-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </span>
               ) : (
                 m.content
               )}
@@ -77,3 +100,4 @@ export function ChatPanel() {
     </div>
   );
 }
+
