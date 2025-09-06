@@ -3,6 +3,7 @@ package api
 import (
     "context"
     "encoding/json"
+    "fmt"
     "log"
     "net/http"
     "sync"
@@ -153,6 +154,9 @@ func (ch *capabilityHandler) startGeneric(c *gin.Context, eventType string, attr
         log.Printf("[stream-start] id=%s eventType=%s attrs=%v", id, eventType, attrs)
         if err := gw.StartGenericStream(ctx, eventType, attrs, in, out); err != nil {
             log.Printf("pcas stream error: %v", err)
+            // surface immediate startup error to client and close
+            select { case out <- []byte(fmt.Sprintf("{\"error\":%q}", err.Error())): default: }
+            close(out)
         }
     }()
 
@@ -302,6 +306,8 @@ func (ch *capabilityHandler) chatOnce(c *gin.Context) {
         }
         if err := gw.StartGenericStream(ctx, ch.cfg.PCAS.ChatEventType, attrs, in, out); err != nil {
             log.Printf("pcas chat error: %v", err)
+            select { case out <- []byte(fmt.Sprintf("{\"error\":%q}", err.Error())): default: }
+            close(out)
         }
     }()
 
@@ -356,7 +362,11 @@ func (ch *capabilityHandler) runTranslate(c *gin.Context) {
         for k, v := range req.Attrs { attrs[k] = v }
         if _, ok := attrs["system"]; !ok { attrs["system"] = "You are a translator. Translate all user input to English." }
         if _, ok := attrs["model"]; !ok { attrs["model"] = "gpt-5-mini" }
-        if err := gw.StartGenericStream(ctx, ch.cfg.PCAS.TranslateEventType, attrs, in, out); err != nil { log.Printf("pcas translate error: %v", err) }
+        if err := gw.StartGenericStream(ctx, ch.cfg.PCAS.TranslateEventType, attrs, in, out); err != nil {
+            log.Printf("pcas translate error: %v", err)
+            select { case out <- []byte(fmt.Sprintf("{\"error\":%q}", err.Error())): default: }
+            close(out)
+        }
     }()
 
     // send input once then commit
@@ -409,7 +419,11 @@ func (ch *capabilityHandler) runSummarize(c *gin.Context) {
         for k, v := range req.Attrs { attrs[k] = v }
         if _, ok := attrs["system"]; !ok { attrs["system"] = "Summarize the user input in 3 concise bullet points." }
         if _, ok := attrs["model"]; !ok { attrs["model"] = "gpt-5-mini" }
-        if err := gw.StartGenericStream(ctx, ch.cfg.PCAS.SummarizeEventType, attrs, in, out); err != nil { log.Printf("pcas summarize error: %v", err) }
+        if err := gw.StartGenericStream(ctx, ch.cfg.PCAS.SummarizeEventType, attrs, in, out); err != nil {
+            log.Printf("pcas summarize error: %v", err)
+            select { case out <- []byte(fmt.Sprintf("{\"error\":%q}", err.Error())): default: }
+            close(out)
+        }
     }()
 
     in <- []byte(req.Text)
