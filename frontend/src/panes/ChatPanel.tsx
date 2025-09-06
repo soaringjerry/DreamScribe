@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { streamSSE } from '../utils/sse';
 
-type Msg = { id: string; role: 'user' | 'ai'; content: string };
+type Msg = { id: string; role: 'user' | 'ai'; content: string; typing?: boolean };
 
 export function ChatPanel() {
   const [messages, setMessages] = useState<Msg[]>([
@@ -15,7 +15,7 @@ export function ChatPanel() {
     const text = input.trim();
     if (!text || sending) return;
     const user: Msg = { id: `u-${Date.now()}`, role: 'user', content: text };
-    const ai: Msg = { id: `a-${Date.now()}`, role: 'ai', content: '' };
+    const ai: Msg = { id: `a-${Date.now()}`, role: 'ai', content: '', typing: true };
     setMessages((m) => [...m, user, ai]);
     setInput('');
     setSending(true);
@@ -29,7 +29,12 @@ export function ChatPanel() {
           body: JSON.stringify({ sessionId: 'current_session', message: text, attrs: { model: 'gpt-5', system: 'You are a helpful assistant.' } }),
         },
         (t) => {
-          setMessages((m) => m.map((msg) => (msg.id === ai.id ? { ...msg, content: msg.content + t } : msg)));
+          // first chunk: turn off typing
+          setMessages((m) => m.map((msg) => (
+            msg.id === ai.id
+              ? { ...msg, typing: false, content: msg.content + t }
+              : msg
+          )));
         },
       );
     } catch (e) {
@@ -47,7 +52,13 @@ export function ChatPanel() {
       <div className="chat-list">
         {messages.map((m) => (
           <div key={m.id} className={`chat-item chat-${m.role}`}>
-            <div className="chat-bubble">{m.content}</div>
+            <div className={`chat-bubble${m.typing ? ' typing' : ''}`}>
+              {m.typing ? (
+                <span className="typing-dots"><span></span><span></span><span></span></span>
+              ) : (
+                m.content
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -66,4 +77,3 @@ export function ChatPanel() {
     </div>
   );
 }
-
