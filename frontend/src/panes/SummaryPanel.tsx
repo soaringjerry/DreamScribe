@@ -1,23 +1,62 @@
+import { useMemo, useRef, useState } from 'react';
+import type { TranscriptLine } from './TranscriptPane';
+import { buildSourceText } from '../utils/text';
+import { streamSSE } from '../utils/sse';
+
 type SummaryItem = { id: string; kind: 'key' | 'action' | 'term'; text: string };
 
 type Props = {
-  items?: SummaryItem[];
+  lines?: TranscriptLine[];
 };
 
-const SAMPLE: SummaryItem[] = [
-  { id: 'k1', kind: 'key', text: '要点：实时转录并编码为记忆事件。' },
-  { id: 'a1', kind: 'action', text: '行动：完善 PCAS 连接稳定性与错误提示。' },
-  { id: 't1', kind: 'term', text: '术语：InteractStream（PCAS 双向流）。' },
-];
+export function SummaryPanel({ lines = [] }: Props) {
+  const [running, setRunning] = useState(false);
+  const [items, setItems] = useState<SummaryItem[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
 
-export function SummaryPanel({ items = SAMPLE }: Props) {
+  const source = useMemo(() => buildSourceText(lines), [lines]);
+
+  const generate = async () => {
+    if (!source.trim() || running) return;
+    setItems([]);
+    setRunning(true);
+    const ac = new AbortController();
+    abortRef.current = ac;
+    let acc = '';
+    try {
+      await streamSSE(
+        '/api/summarize/run',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: source, mode: 'final', attrs: { model: 'gpt-5-mini' } }),
+        },
+        (t) => {
+          acc += t;
+          const lines = acc.split(/\n+/).filter(Boolean);
+          setItems(lines.map((txt, i) => ({ id: `k${i}`, kind: 'key', text: txt })));
+        },
+        ac.signal,
+      );
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e);
+    } finally {
+      setRunning(false);
+      abortRef.current = null;
+    }
+  };
+
+  const stop = () => abortRef.current?.abort();
+
   return (
     <div className="summary-panel">
       <div className="summary-toolbar">
         <div className="pane__title">摘要 Summary</div>
         <div className="summary-actions">
-          <button className="btn btn-secondary" disabled>生成</button>
-          <button className="btn btn-secondary" disabled>刷新</button>
+          <button className="btn btn-secondary" onClick={generate} disabled={!source.trim() || running}>生成</button>
+          <button className="btn" onClick={() => setItems([])} disabled={running || items.length === 0}>清空</button>
+          <button className="btn" onClick={stop} disabled={!running}>停止</button>
         </div>
       </div>
       <div className="summary-list">
@@ -27,7 +66,9 @@ export function SummaryPanel({ items = SAMPLE }: Props) {
             <div className="summary-text">{it.text}</div>
           </div>
         ))}
+        {items.length === 0 && <div className="placeholder">点击“生成”基于当前转录生成摘要</div>}
       </div>
     </div>
   );
 }
+

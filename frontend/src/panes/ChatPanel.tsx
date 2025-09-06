@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { streamSSE } from '../utils/sse';
 
 type Msg = { id: string; role: 'user' | 'ai'; content: string };
 
@@ -7,15 +8,37 @@ export function ChatPanel() {
     { id: 'ai-hello', role: 'ai', content: '你好，我是你的课堂助手。' },
   ]);
   const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const send = () => {
+  const send = async () => {
     const text = input.trim();
-    if (!text) return;
-    const newUser: Msg = { id: `u-${Date.now()}`, role: 'user', content: text };
-    setMessages((m) => [...m, newUser, { id: `ai-${Date.now()}`, role: 'ai', content: '（占位）稍后将接入流式回答。' }]);
+    if (!text || sending) return;
+    const user: Msg = { id: `u-${Date.now()}`, role: 'user', content: text };
+    const ai: Msg = { id: `a-${Date.now()}`, role: 'ai', content: '' };
+    setMessages((m) => [...m, user, ai]);
     setInput('');
-    inputRef.current?.focus();
+    setSending(true);
+
+    try {
+      await streamSSE(
+        '/api/chat',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: 'current_session', message: text, attrs: { model: 'gpt-5', system: 'You are a helpful assistant.' } }),
+        },
+        (t) => {
+          setMessages((m) => m.map((msg) => (msg.id === ai.id ? { ...msg, content: msg.content + t } : msg)));
+        },
+      );
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e);
+    } finally {
+      setSending(false);
+      inputRef.current?.focus();
+    }
   };
 
   return (
@@ -34,9 +57,13 @@ export function ChatPanel() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="输入你的问题…（可引用左侧文本）"
+          disabled={sending}
         />
-        <button className="btn btn-primary" onClick={send}>发送</button>
+        <button className="btn btn-primary" onClick={send} disabled={sending || !input.trim()}>
+          发送
+        </button>
       </div>
     </div>
   );
 }
+

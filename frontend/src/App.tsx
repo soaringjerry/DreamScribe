@@ -304,7 +304,7 @@ function TranscriptionApp() {
         <TranscriptPane lines={lines} typewriterEnabled={typewriterEnabled} scrollRef={originalColumnRef} />
         <TranslationPane lines={lines} targetLang="en" />
         <div className="right-stack">
-          <SummaryPanel />
+          <SummaryPanel lines={lines} />
           <ChatPanel />
           <div className="controls" style={{ justifyContent: 'flex-end' }}>
             <button onClick={handleDownloadText} className="btn btn-secondary" disabled={lines.length === 0}>导出文本</button>

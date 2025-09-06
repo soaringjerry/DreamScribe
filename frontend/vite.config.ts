@@ -12,6 +12,11 @@ export default defineConfig({
         changeOrigin: true,
         ws: true,
       },
+      // Proxy REST APIs to backend during dev
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 })
