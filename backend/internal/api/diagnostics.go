@@ -73,7 +73,13 @@ func (h *Handler) handleTestPage(c *gin.Context) {
     code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   </style>
   <script>
-  async function getJSON(url, opts) { const r = await fetch(url, opts); if (!r.ok) throw new Error(await r.text()); return r.json(); }
+  async function getJSON(url, opts) {
+    const r = await fetch(url, opts);
+    const txt = await r.text();
+    if (!r.ok) throw new Error(txt || (r.status+" "+r.statusText));
+    try { return JSON.parse(txt || '{}'); }
+    catch (e) { throw new Error('Non-JSON response: '+(txt ? txt.slice(0,200) : '[empty]')); }
+  }
   function log(el, ...args){ el.textContent += args.join(' ') + "\n"; el.scrollTop = el.scrollHeight; }
   function esc(s){ return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
   </script>

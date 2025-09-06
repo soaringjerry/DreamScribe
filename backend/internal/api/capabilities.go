@@ -138,6 +138,7 @@ func (ch *capabilityHandler) startGeneric(c *gin.Context, eventType string, attr
             return
         }
         defer gw.Close()
+        log.Printf("[stream-start] id=%s eventType=%s attrs=%v", id, eventType, attrs)
         if err := gw.StartGenericStream(ctx, eventType, attrs, in, out); err != nil {
             log.Printf("pcas stream error: %v", err)
         }
@@ -199,6 +200,11 @@ func (ch *capabilityHandler) sendToStream(c *gin.Context) {
         c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{"message": "invalid text"}})
         return
     }
+    if len(req.Text) > 0 {
+        clip := req.Text
+        if len(clip) > 120 { clip = clip[:120] + "..." }
+        log.Printf("[stream-send] id=%s bytes=%d preview=%q", id, len(req.Text), clip)
+    }
     select {
     case s.in <- []byte(req.Text):
         c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -218,6 +224,7 @@ func (ch *capabilityHandler) commitStream(c *gin.Context) {
     // idempotent close
     defer func() { recover() }()
     close(s.in)
+    log.Printf("[stream-commit] id=%s", id)
     c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -285,6 +292,7 @@ func (ch *capabilityHandler) chatOnce(c *gin.Context) {
     }()
 
     // send raw message bytes then close input (provider aggregates raw prompt and starts after ClientEnd)
+    log.Printf("[chat] session=%s bytes=%d", req.SessionID, len(req.Message))
     in <- []byte(req.Message)
     close(in)
 
