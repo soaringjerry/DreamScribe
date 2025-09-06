@@ -15,14 +15,31 @@ export function ChatPanel() {
     const text = input.trim();
     if (!text || sending) return;
 
-    // Build a lightweight rolling context from recent turns
-    const MAX_TURNS = 6; // include recent messages
-    const recents = messages
-      .filter((m) => m.role === 'user' || m.role === 'ai')
-      .slice(-MAX_TURNS);
-    const contextText = recents
-      .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
-      .join('\n');
+    // Build a lightweight rolling context from recent turns with hard caps
+    const MAX_TURNS = 6;         // limit number of recent messages
+    const MAX_CONTEXT_CHARS = 2000; // limit total characters
+    const turns = messages.filter((m) => m.role === 'user' || m.role === 'ai');
+    const recentTurns = turns.slice(-MAX_TURNS);
+    // Enforce char budget from the end backward, then restore order
+    let budget = MAX_CONTEXT_CHARS;
+    const picked: string[] = [];
+    for (let i = recentTurns.length - 1; i >= 0; i--) {
+      const t = `${recentTurns[i].role === 'user' ? 'User' : 'Assistant'}: ${recentTurns[i].content}`;
+      if (t.length <= budget) {
+        picked.push(t);
+        budget -= t.length + 1; // + newline
+      } else {
+        // take tail part to fit budget, if any
+        if (budget > 20) { // avoid adding extremely short fragments
+          picked.push(t.slice(t.length - budget));
+          budget = 0;
+        }
+        break;
+      }
+      if (budget <= 0) break;
+    }
+    picked.reverse();
+    const contextText = picked.join('\n');
 
     const user: Msg = { id: `u-${Date.now()}`, role: 'user', content: text };
     const ai: Msg = { id: `a-${Date.now()}`, role: 'ai', content: '', typing: true };
@@ -100,4 +117,3 @@ export function ChatPanel() {
     </div>
   );
 }
-
