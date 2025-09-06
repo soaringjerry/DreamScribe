@@ -63,9 +63,11 @@ func (h *Handler) registerCapabilities(router *gin.Engine) {
 
     router.POST("/api/translate/start", ch.startTranslate)
     router.GET("/api/translate/stream", ch.streamSSE)
+    router.POST("/api/translate/run", ch.runTranslate)
 
     router.POST("/api/summarize/start", ch.startSummarize)
     router.GET("/api/summarize/stream", ch.streamSSE)
+    router.POST("/api/summarize/run", ch.runSummarize)
 
     router.POST("/api/streams/:id/send", ch.sendToStream)
     router.POST("/api/streams/:id/commit", ch.commitStream)
@@ -84,6 +86,14 @@ type startReq struct {
 
 type startResp struct {
     StreamID string `json:"streamId"`
+}
+
+type runReq struct {
+    SessionID string            `json:"sessionId"`
+    Text      string            `json:"text"`
+    TargetLang string           `json:"targetLang"`
+    Mode      string            `json:"mode"`
+    Attrs     map[string]string `json:"attrs"`
 }
 
 func (ch *capabilityHandler) startTranslate(c *gin.Context) {
@@ -298,6 +308,111 @@ func (ch *capabilityHandler) chatOnce(c *gin.Context) {
     // send raw message bytes then close input (provider aggregates raw prompt and starts after ClientEnd)
     log.Printf("[chat] session=%s bytes=%d", req.SessionID, len(req.Message))
     in <- []byte(req.Message)
+    close(in)
+
+    notify := c.Request.Context().Done()
+    for {
+        select {
+        case b, ok := <-out:
+            if !ok { return }
+            payload, _ := json.Marshal(gin.H{"text": string(b)})
+            _, _ = w.Write([]byte("data: "))
+            _, _ = w.Write(payload)
+            _, _ = w.Write([]byte("\n\n"))
+            w.Flush()
+        case <-notify:
+            return
+        }
+    }
+}
+
+// runTranslate: one-shot SSE; BFF sends text then ClientEnd automatically
+func (ch *capabilityHandler) runTranslate(c *gin.Context) {
+    var req runReq
+    if err := c.ShouldBindJSON(&req); err != nil || req.Text == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{"message": "invalid request"}})
+        return
+    }
+
+    w := c.Writer
+    c.Header("Content-Type", "text/event-stream")
+    c.Header("Cache-Control", "no-cache")
+    c.Header("Connection", "keep-alive")
+    c.Header("X-Accel-Buffering", "no")
+    _, _ = w.Write([]byte(":ok\n\n"))
+    w.Flush()
+
+    in := make(chan []byte, 4)
+    out := make(chan []byte, 16)
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+
+    go func() {
+        gw, err := pcas.NewGateway(ch.cfg.PCAS.Address)
+        if err != nil { log.Printf("gateway error: %v", err); close(out); return }
+        defer gw.Close()
+        attrs := map[string]string{}
+        if req.TargetLang != "" { attrs["target_lang"] = req.TargetLang }
+        for k, v := range req.Attrs { attrs[k] = v }
+        if _, ok := attrs["system"]; !ok { attrs["system"] = "You are a translator. Translate all user input to English." }
+        if _, ok := attrs["model"]; !ok { attrs["model"] = "gpt-5-mini" }
+        if err := gw.StartGenericStream(ctx, ch.cfg.PCAS.TranslateEventType, attrs, in, out); err != nil { log.Printf("pcas translate error: %v", err) }
+    }()
+
+    // send input once then commit
+    in <- []byte(req.Text)
+    close(in)
+
+    notify := c.Request.Context().Done()
+    for {
+        select {
+        case b, ok := <-out:
+            if !ok { return }
+            payload, _ := json.Marshal(gin.H{"text": string(b)})
+            _, _ = w.Write([]byte("data: "))
+            _, _ = w.Write(payload)
+            _, _ = w.Write([]byte("\n\n"))
+            w.Flush()
+        case <-notify:
+            return
+        }
+    }
+}
+
+// runSummarize: one-shot SSE; BFF sends text then ClientEnd automatically
+func (ch *capabilityHandler) runSummarize(c *gin.Context) {
+    var req runReq
+    if err := c.ShouldBindJSON(&req); err != nil || req.Text == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{"message": "invalid request"}})
+        return
+    }
+
+    w := c.Writer
+    c.Header("Content-Type", "text/event-stream")
+    c.Header("Cache-Control", "no-cache")
+    c.Header("Connection", "keep-alive")
+    c.Header("X-Accel-Buffering", "no")
+    _, _ = w.Write([]byte(":ok\n\n"))
+    w.Flush()
+
+    in := make(chan []byte, 4)
+    out := make(chan []byte, 16)
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+
+    go func() {
+        gw, err := pcas.NewGateway(ch.cfg.PCAS.Address)
+        if err != nil { log.Printf("gateway error: %v", err); close(out); return }
+        defer gw.Close()
+        attrs := map[string]string{}
+        if req.Mode != "" { attrs["mode"] = req.Mode }
+        for k, v := range req.Attrs { attrs[k] = v }
+        if _, ok := attrs["system"]; !ok { attrs["system"] = "Summarize the user input in 3 concise bullet points." }
+        if _, ok := attrs["model"]; !ok { attrs["model"] = "gpt-5-mini" }
+        if err := gw.StartGenericStream(ctx, ch.cfg.PCAS.SummarizeEventType, attrs, in, out); err != nil { log.Printf("pcas summarize error: %v", err) }
+    }()
+
+    in <- []byte(req.Text)
     close(in)
 
     notify := c.Request.Context().Done()

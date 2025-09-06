@@ -116,6 +116,16 @@ func (h *Handler) handleTestPage(c *gin.Context) {
     <pre id="trLog"></pre>
   </div>
   <div class="card">
+    <h2>Translate (one-shot)</h2>
+    <div class="row">
+      <input id="tr1Text" placeholder="text" style="flex:1" />
+      <input id="tr1Lang" value="en" style="width:8rem"/>
+      <input id="tr1Attrs" placeholder='Attrs JSON (optional)' style="flex:1" />
+      <button id="tr1Run">Run</button>
+    </div>
+    <pre id="tr1Log"></pre>
+  </div>
+  <div class="card">
     <h2>Summarize SSE</h2>
     <div class="row">
       <select id="smMode"><option value="rolling">rolling</option><option value="final">final</option></select>
@@ -129,6 +139,16 @@ func (h *Handler) handleTestPage(c *gin.Context) {
       <button id="smSend" disabled>Send</button>
     </div>
     <pre id="smLog"></pre>
+  </div>
+  <div class="card">
+    <h2>Summarize (one-shot)</h2>
+    <div class="row">
+      <input id="sm1Text" placeholder="text" style="flex:1" />
+      <select id="sm1Mode"><option value="rolling">rolling</option><option value="final">final</option></select>
+      <input id="sm1Attrs" placeholder='Attrs JSON (optional)' style="flex:1" />
+      <button id="sm1Run">Run</button>
+    </div>
+    <pre id="sm1Log"></pre>
   </div>
   <div class="card">
     <h2>Chat (one-shot SSE)</h2>
