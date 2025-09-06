@@ -127,7 +127,9 @@ func (ch *capabilityHandler) startGeneric(c *gin.Context, eventType string, attr
     id := uuid.New().String()
     in := make(chan []byte, 16)
     out := make(chan []byte, 16)
-    ctx, cancel := context.WithCancel(c.Request.Context())
+    // Use a background context so the stream outlives this HTTP request.
+    // The lifecycle is controlled by commit/close.
+    ctx, cancel := context.WithCancel(context.Background())
 
     // bridge to PCAS in background
     go func() {
@@ -205,12 +207,14 @@ func (ch *capabilityHandler) sendToStream(c *gin.Context) {
         if len(clip) > 120 { clip = clip[:120] + "..." }
         log.Printf("[stream-send] id=%s bytes=%d preview=%q", id, len(req.Text), clip)
     }
-    select {
-    case s.in <- []byte(req.Text):
-        c.JSON(http.StatusOK, gin.H{"ok": true})
-    default:
-        c.JSON(http.StatusTooManyRequests, gin.H{"error": gin.H{"message": "backpressure"}})
-    }
+    // Guard against sending after commit (channel closed)
+    defer func() {
+        if r := recover(); r != nil {
+            c.JSON(http.StatusConflict, gin.H{"error": gin.H{"message": "stream already committed/closed"}})
+        }
+    }()
+    s.in <- []byte(req.Text)
+    c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 // commitStream: close input channel to signal ClientEnd but keep stream alive to receive results
